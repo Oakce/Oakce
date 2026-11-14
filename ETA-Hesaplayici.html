@@ -16,6 +16,7 @@ nav button.on{background:#fff;color:var(--acc)}
 main{max-width:1250px;margin:16px auto;padding:0 14px}
 main{max-width:none}
 #chain td,#chain th{padding:4px 5px}
+#chain tr.vchg>td{border-top:3px solid var(--acc)!important}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
 .card h2{margin:0 0 10px;font-size:15px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
@@ -426,10 +427,10 @@ function renderRoute(){
   st.forEach((s,i)=>{
     const r=rows[i]||{},first=i===0;
     const lk=first?null:lookup(st[i-1].port,s.port);
-    const vchg=i>0&&voyOf(S.route,i)!==voyOf(S.route,i-1)?"border-top:2px solid var(--acc);":"";
+    const vchg="";const isV=i>0&&voyOf(S.route,i)!==voyOf(S.route,i-1);
     const dt=(k,ms)=>{const fixed=parseDT(s[k])!=null;
       return `<span class="dt" data-dt="${k}" data-i="${i}" title="Dokunun: kesin saat girin" style="cursor:pointer;white-space:nowrap;${fixed?"font-weight:600":""}">${fixed?"📌 ":""}${ms==null?'<span class="mut">— gir</span>':esc(short(fmt(ms,s.port)))}</span>`};
-    h+=`<tr data-i="${i}" style="${i<=dk?"background:var(--done);":""}${vchg}">
+    h+=`<tr data-i="${i}" class="${isV?"vchg":""}" style="${i<=dk?"background:var(--done);":""}${vchg}">
       <td><input type="checkbox" data-k="sel" ${s.sel?"checked":""}></td>
       <td class="mut">${i+1}</td>
       <td><input data-k="voy" value="${esc(s.voy||"")}" placeholder="${esc(autoVoy(S.route,i))}" style="width:70px"></td>

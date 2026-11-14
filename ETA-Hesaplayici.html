@@ -153,13 +153,16 @@ td select{max-width:270px;width:100%}
   <div class="card">
     <h2>Mesafeler (nm) <span class="mut">— ters yön otomatik aynı kabul edilir (A→B kayıtlıysa B→A da kullanılır)</span></h2>
     <div class="row" style="margin-bottom:10px">
-      <label>Liman A <select id="da" style="min-width:220px"></select></label>
-      <label>Liman B <select id="db" style="min-width:220px"></select></label>
+      <label>From <select id="da" style="min-width:220px"></select></label>
+      <label>To <select id="db" style="min-width:220px"></select></label>
       <label>Mesafe (nm) <input id="dn" type="number" min="0" style="width:90px"></label>
       <button id="adddist" class="p">Ekle / Güncelle</button>
-      <input id="dfilter" placeholder="Ara…" style="width:160px">
     </div>
-    <table id="disttbl"><thead><tr><th>Kimden</th><th>Kime</th><th>nm</th><th></th></tr></thead><tbody></tbody></table>
+    <table id="disttbl"><thead>
+      <tr><th class="dsort" data-s="a" style="cursor:pointer">From <span></span></th><th class="dsort" data-s="b" style="cursor:pointer">To <span></span></th><th class="dsort" data-s="nm" style="cursor:pointer">nm <span></span></th><th></th></tr>
+      <tr><th><input id="dfa" placeholder="From filtresi…" style="width:100%;min-width:140px"></th><th><input id="dfb" placeholder="To filtresi…" style="width:100%;min-width:140px"></th><th></th><th><button id="dfx" title="Filtreleri temizle">✕</button></th></tr>
+    </thead><tbody></tbody></table>
+    <p class="mut" id="dcount" style="margin:6px 0 0"></p>
   </div>
   <div class="card">
     <h2>Yedek</h2>
@@ -499,32 +502,45 @@ function renderOut(){
 
 /* ---------- çizim: liman/mesafe ---------- */
 function renderDist(){
-  $("#portchips").innerHTML=S.ports.map((p,i)=>`<span style="border:1px solid var(--line);border-radius:14px;padding:2px 4px 2px 10px">${esc(p)}
-     <button data-i="${i}" class="d" style="border:0;padding:0 6px;background:none" title="Sil">✕</button></span>`).join("");
+  $("#portchips").innerHTML=[...S.ports].sort((x,y)=>x.localeCompare(y,"tr")).map((p,i)=>`<span style="border:1px solid var(--line);border-radius:14px;padding:2px 4px 2px 10px">${esc(p)}
+     <button data-p="${esc(p)}" class="d" style="border:0;padding:0 6px;background:none" title="Sil">✕</button></span>`).join("");
   $("#portchips").querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    const p=S.ports[+b.dataset.i];
+    const p=b.dataset.p;
     if(!confirm(`"${p}" ve bu limanın tüm mesafeleri silinsin mi?`))return;
-    S.ports.splice(+b.dataset.i,1); S.dist=S.dist.filter(d=>d.a!==p&&d.b!==p);
+    S.ports.splice(S.ports.indexOf(p),1); S.dist=S.dist.filter(d=>d.a!==p&&d.b!==p);
     S.route.stops.forEach(s=>{if(s.port===p)s.port=S.ports[0]||""});
     persist();renderDist();renderRoute();renderOut();fillSaved();
   });
-  const opts=S.ports.map(p=>`<option>${esc(p)}</option>`).join("");
+  const opts=[...S.ports].sort((x,y)=>x.localeCompare(y,"tr")).map(p=>`<option>${esc(p)}</option>`).join("");
   const a=$("#da").value,b=$("#db").value;
   $("#da").innerHTML=opts;$("#db").innerHTML=opts;
   if(S.ports.includes(a))$("#da").value=a; if(S.ports.includes(b))$("#db").value=b;
-  const f=$("#dfilter").value.toLowerCase();
-  const tb=$("#disttbl tbody"); tb.innerHTML="";
+  const fa=$("#dfa").value.toLowerCase().trim(),fb=$("#dfb").value.toLowerCase().trim();
+  const so=S.dsort||{k:"a",dir:1};
+  $("#disttbl").querySelectorAll(".dsort").forEach(th=>{th.querySelector("span").textContent=th.dataset.s===so.k?(so.dir>0?"▲":"▼"):"↕"});
+  const m=(x,f)=>!f||x.toLowerCase().includes(f),list=[];
   S.dist.forEach((d,i)=>{
-    if(f&&!(d.a+d.b).toLowerCase().includes(f))return;
+    if(m(d.a,fa)&&m(d.b,fb))list.push({d:{a:d.a,b:d.b,nm:d.nm},src:d,i,rev:false});
+    else if((fa||fb)&&m(d.b,fa)&&m(d.a,fb))list.push({d:{a:d.b,b:d.a,nm:d.nm},src:d,i,rev:true});
+  });
+  list.sort((x,y)=>{const k=so.k;let c=k==="nm"?(x.d.nm-y.d.nm):x.d[k].localeCompare(y.d[k],"tr");
+    if(!c)c=(k==="a"?x.d.b.localeCompare(y.d.b,"tr"):x.d.a.localeCompare(y.d.a,"tr"));return c*so.dir});
+  $("#dcount").textContent=`${list.length} / ${S.dist.length} mesafe gösteriliyor`;
+  const tb=$("#disttbl tbody"); tb.innerHTML="";
+  list.forEach(({d,src,i,rev})=>{
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${esc(d.a)}</td><td>${esc(d.b)}</td>
+    tr.innerHTML=`<td>${esc(d.a)}</td><td>${esc(d.b)}${rev?' <span class="mut" title="Ters yönde kayıtlı, aynı mesafe">↔</span>':""}</td>
       <td><input type="number" min="0" value="${d.nm}" style="width:80px"></td>
       <td><button class="d">Sil</button></td>`;
-    tr.querySelector("input").oninput=e=>{d.nm=+e.target.value;persist();renderOut()};
+    tr.querySelector("input").onchange=e=>{src.nm=+e.target.value;persist();renderOut()};
     tr.querySelector("button").onclick=()=>{S.dist.splice(i,1);persist();renderDist();renderOut()};
     tb.appendChild(tr);
   });
 }
+$("#disttbl").querySelectorAll(".dsort").forEach(th=>th.onclick=()=>{const k=th.dataset.s,so=S.dsort||{k:"a",dir:1};
+  S.dsort=so.k===k?{k,dir:-so.dir}:{k,dir:1};persist();renderDist()});
+$("#dfa").oninput=renderDist;$("#dfb").oninput=renderDist;
+$("#dfx").onclick=()=>{$("#dfa").value="";$("#dfb").value="";renderDist()};
 
 /* ---------- kayıtlı seferler ---------- */
 function fillHist(){
@@ -636,7 +652,6 @@ $("#adddist").onclick=()=>{const a=$("#da").value,b=$("#db").value,nm=+$("#dn").
   const f=S.dist.find(d=>d.a===a&&d.b===b)||S.dist.find(d=>d.a===b&&d.b===a);
   if(f)f.nm=nm; else S.dist.push({a,b,nm});
   $("#dn").value="";persist();renderDist();renderOut()};
-$("#dfilter").oninput=renderDist;
 
 /* kopyala / csv / yazdır */
 $("#copy").onclick=()=>{

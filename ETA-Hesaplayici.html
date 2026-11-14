@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ETA Hesaplayıcı</title>
 <style>
-:root{--bg:#f4f6f9;--card:#fff;--ink:#1c2430;--mut:#667085;--line:#d8dee8;--acc:#0b5cab;--acc2:#e8f1fb;--bad:#b42318;--ok:#067647}
-@media(prefers-color-scheme:dark){:root{--bg:#10151c;--card:#18202a;--ink:#e6ebf2;--mut:#93a0b3;--line:#2b3644;--acc:#5aa6f0;--acc2:#1c2b3d;--bad:#ff8a80;--ok:#5fd39a}}
+:root{--bg:#f4f6f9;--card:#fff;--ink:#1c2430;--mut:#667085;--line:#d8dee8;--acc:#0b5cab;--acc2:#e8f1fb;--bad:#b42318;--ok:#067647;--done:#fff6bf}
+@media(prefers-color-scheme:dark){:root{--bg:#10151c;--card:#18202a;--ink:#e6ebf2;--mut:#93a0b3;--line:#2b3644;--acc:#5aa6f0;--acc2:#1c2b3d;--bad:#ff8a80;--ok:#5fd39a;--done:#3b3612}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 "Segoe UI",system-ui,sans-serif}
 header{background:var(--acc);color:#fff;padding:10px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -108,6 +108,7 @@ td select{max-width:270px;width:100%}
       <span id="outtitle">Sonuç</span>
       <span style="flex:1"></span>
       <span class="noprint" style="display:flex;gap:6px">
+        <label style="flex-direction:row;align-items:center;gap:6px">Mail şu limandan başlasın <select id="mailfrom" style="max-width:260px"></select></label>
         <button id="copy">📋 Kopyala (Outlook/Excel'e yapıştır)</button>
         <button id="csv">⬇ Excel (CSV)</button>
         <button id="print">🖨 Yazdır</button>
@@ -125,9 +126,14 @@ td select{max-width:270px;width:100%}
 <!-- ============ LİMANLAR ============ -->
 <section id="v-list" class="hide">
   <div class="card">
-    <h2>Sefer geçmişi <span class="mut">— tüm kayıtlı seferler Excel gibi alt alta, tarih sırasıyla. "Aç" ile hesaplayıcıya alın.</span></h2>
-    <div class="row" style="align-items:end"><label>Ara <input id="lfilter" placeholder="gemi, sefer veya liman" style="width:240px"></label>
-      <button id="lcopy">📋 Hepsini kopyala</button><span id="lcount" class="mut"></span></div>
+    <h2>Sefer zinciri <span class="mut">— Excel'deki gibi: her satır bir bacak (From → To). Sarı satırlar gerçekleşmiş (kesin ETD girilmiş) bacaklar.</span></h2>
+    <div class="row" style="align-items:end">
+      <label>Gemi / kayıt <select id="lship" style="min-width:220px"></select></label>
+      <label>Ara <input id="lfilter" placeholder="voy veya liman" style="width:180px"></label>
+      <button id="lcopy">📋 Tabloyu kopyala</button>
+      <button id="ledit" class="p">Hesapla'da düzenle</button>
+      <span id="lcount" class="mut"></span>
+    </div>
   </div>
   <div id="listbody"></div>
 </section>
@@ -258,7 +264,41 @@ function defaultInfo(){
   return o;
 }
 /* eski kayıtlara yeni limanları / GMT'yi ekler, kullanıcının girdiklerini bozmaz */
+/* PORTOLA sefer zinciri — ETA_10.10.2026 Excel'inden (sabit girilmiş ETD'ler aynen) */
+const PORTOLA_CHAIN={name:"PORTOLA",vessel:"M/T PORTOLA",stops:[
+ {port:"Cole Bay / St Maarten",op:0,voy:"Voy 72"},
+ {port:"Grenlec Queens Park / Grenade",op:72,voy:"Voy 72",eta:"2026-10-09T17:12"},
+ {port:"Buckeye Terminal Cul De Sac / St. Lucia",op:24,voy:"Voy 72",etd:"2026-10-14T05:00"},
+ {port:"Greathead Bay / St. Vincent",op:18,voy:"Voy 72",etd:"2026-10-14T20:00"},
+ {port:"Vieux Fort / St Lucia",op:24,voy:"Voy 72",etd:"2026-10-16T18:18"},
+ {port:"Lime Tree Bay / St Croix",op:24,voy:"Voy 73",etd:"2026-10-19T19:12"},
+ {port:"Cole Bay / St Maarten",op:24,voy:"Voy 73"},
+ {port:"Fort Pine / St Kitts",op:24,voy:"Voy 73",etd:"2026-10-23T06:00"},
+ {port:"Lime Tree Bay / St Croix",op:24,voy:"Voy 74",etd:"2026-10-25T03:00"},
+ {port:"Cole Bay / St Maarten",op:24,voy:"Voy 74",etd:"2026-10-27T06:33"},
+ {port:"Grenlec Queens Park / Grenade",op:72,voy:"Voy 74"},
+ {port:"Vinlec / St. Vincent",op:48,voy:"Voy 74"},
+ {port:"Buckeye Terminal Cul De Sac / St. Lucia",op:24,voy:"Voy 75",etd:"2026-11-05T01:08"},
+ {port:"Cole Bay / St Maarten",op:33.6,voy:"Voy 75",etd:"2026-11-08T12:00"},
+ {port:"Fort Pine / St Kitts",op:24,voy:"Voy 75",etd:"2026-11-09T19:17"},
+ {port:"Lime Tree Bay / St Croix",op:24,voy:"Voy 76",etd:"2026-11-12T03:06"},
+ {port:"Cole Bay / St Maarten",op:24,voy:"Voy 76",etd:"2026-11-14T07:00"},
+ {port:"Fort Pine / St Kitts",op:24,voy:"Voy 76",etd:"2026-11-15T18:00"},
+ {port:"Lime Tree Bay / St Croix",op:36,voy:"Voy 77"},
+ {port:"Grenlec Queens Park / Grenade",op:24,voy:"Voy 77"},
+ {port:"Suhoza / Suriname",op:24,voy:"Voy 77"},
+ {port:"Beekhuizen - Gow2 / Suriname",op:24,voy:"Voy 77"},
+ {port:"Trinidad",op:24,voy:"Voy 77"},
+ {port:"Lime Tree Bay / St Croix",op:24,voy:"Voy 77"}]};
 function migrate(){
+  if(!S.seed3){ /* bir kez: mevcut rotayı kaydet, PORTOLA zincirini aç */
+    S.saved=S.saved||{};
+    const cn=(S.route&&S.route.name||"").trim();
+    if(cn&&!S.saved[cn])S.saved[cn]=JSON.parse(JSON.stringify(S.route));
+    if(!S.saved.PORTOLA)S.saved.PORTOLA=JSON.parse(JSON.stringify(PORTOLA_CHAIN));
+    S.route=JSON.parse(JSON.stringify(S.saved.PORTOLA));
+    S.seed3=true;
+  }
   S.history=S.history||[];
   S.info=S.info||{};
   const di=defaultInfo();
@@ -319,7 +359,7 @@ function compute(route){
     const r={port:s.port,gmt:gmtOf(s.port),nm:null,speed:null,sea:null,eta:null,op:s.op||0,etd:null};
     if(i===0){
       r.etd=parseDT(s.etd);
-      if(r.etd==null) msgs.push("1. satır için ETD (başlangıç) girin.");
+      if(r.etd==null&&!(st[1]&&parseDT(st[1].eta))) msgs.push("1. satır için ETD (başlangıç) girin.");
     }else{
       let nm=s.nm!==""&&s.nm!=null&&!isNaN(+s.nm)?+s.nm:null;
       if(nm==null){
@@ -347,6 +387,7 @@ function renderRoute(){
   S.route.stops.forEach((s,i)=>{
     const tr=document.createElement("tr");
     const first=i===0;
+    if(i<=doneIdx(S.route))tr.style.background="var(--done)";
     tr.innerHTML=`<td>${i+1}</td>
       <td><input data-k="voy" value="${esc(s.voy||"")}" placeholder="${esc(autoVoy(S.route,i))}" style="width:84px"></td>
       <td><select data-k="port">${portOptions(s.port)}</select> <span class="mut">${gmtTxt(s.port)}</span></td>
@@ -380,18 +421,25 @@ function renderRoute(){
 }
 /* ---------- çizim: sonuç ---------- */
 function autoVoy(route,i){
+  for(let j=i-1;j>=0;j--){const v=route.stops[j]&&route.stops[j].voy;if(v)return v}
   const nm=route.name||"",vm=/^(.*?)(\d+)(\D*)$/.exec(nm);
   return vm?(i===0?vm[1]+(+vm[2]-1)+vm[3]:nm):nm;
 }
+const voyOf=(route,i)=>(route.stops[i]&&route.stops[i].voy)||autoVoy(route,i);
+/* son kesin ETD girilmiş liman = gemi orada / oradan çıktı; öncesi gerçekleşmiş */
+function doneIdx(route){let k=-1;route.stops.forEach((s,i)=>{if(parseDT(s.etd)!=null)k=i});return k}
+function mailStart(route){const f=route.mailFrom;if(f!=null&&f!==""&&+f>=0&&+f<route.stops.length)return +f;return Math.max(0,doneIdx(route))}
+const hhmm=h=>{if(h==null)return "-";const t=Math.floor(h*60+1e-6);return `${p2(Math.floor(t/60))}:${p2(t%60)}`};
 function mailHTML(rows,route){
   const F="font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:14px;";
   const B="border:1px solid #b8c4d4;padding:7px 12px;";
   const th=x=>`<th style="${F}${B}background:#0f3d6e;color:#ffffff;text-align:left;font-weight:bold;">${x}</th>`;
   let m=`<table style="border-collapse:collapse;width:auto"><thead><tr>${th("VOY")}${th("PORT")}${th("ETA")}${th("ETD")}</tr></thead><tbody>`;
-  rows.forEach((r,i)=>{
-    const bg=i%2?"#f1f5fa":"#ffffff",s=route.stops[i]||{};
+  const st0=mailStart(route);
+  rows.forEach((r,i)=>{ if(i<st0)return; const k=i-st0;
+    const bg=k%2?"#f1f5fa":"#ffffff";
     const td=(x,ex="")=>`<td style="${F}${B}background:${bg};color:#111827;${ex}">${x}</td>`;
-    m+=`<tr>${td(esc(s.voy||autoVoy(route,i)),"white-space:nowrap;")}${td(esc(r.port))}${td(i===0?"-":fmt(r.eta,r.port),"font-weight:bold;white-space:nowrap;"+(i===0?"text-align:center;":""))}${td(fmt(r.etd,r.port),"font-weight:bold;white-space:nowrap;")}</tr>`;
+    m+=`<tr>${td(esc(voyOf(route,i)),"white-space:nowrap;")}${td(esc(r.port))}${td(k===0?"-":fmt(r.eta,r.port),"font-weight:bold;white-space:nowrap;"+(k===0?"text-align:center;":""))}${td(fmt(r.etd,r.port),"font-weight:bold;white-space:nowrap;")}</tr>`;
   });
   return m+"</tbody></table>";
 }
@@ -400,6 +448,9 @@ function renderOut(){
   const {rows,msgs}=compute(); lastRows=rows;
   $("#outtitle").textContent=`Sonuç — ${S.route.name||"Sefer"}  (hız ${S.speed} kn)`;
   $("#msgs").innerHTML=msgs.map(m=>`<div class="warn">${esc(m)}</div>`).join("");
+  const dk=Math.max(0,doneIdx(S.route));
+  $("#mailfrom").innerHTML=`<option value="">Otomatik (#${dk+1} ${esc(S.route.stops[dk]?S.route.stops[dk].port:"")})</option>`+
+    S.route.stops.map((s,i)=>`<option value="${i}" ${String(S.route.mailFrom)===String(i)?"selected":""}>#${i+1} ${esc(voyOf(S.route,i))} · ${esc(s.port)}</option>`).join("");
   $("#out").innerHTML=mailHTML(rows,S.route);
   let h=`<thead><tr><th>#</th><th>PORT</th><th>GMT</th><th>Mesafe (nm)</th><th>Seyir süresi</th><th>ETA</th><th>Operasyon</th><th>ETD</th></tr></thead><tbody>`;
   rows.forEach((r,i)=>{
@@ -535,51 +586,44 @@ $("#bgo").onclick=()=>{
   $("#bnote").textContent=`${out.length} liman eklendi.`+(miss.length?` Okunamayan ${miss.length} satır: `+miss.join(" / "):"")+(keepFirst?"":" 1. satıra ETD girmeyi unutmayın.");
   if(!miss.length)$("#btxt").value="";
 };
-/* ---- Seferler sekmesi: tüm kayıtlar tek ekranda ---- */
-function historyEntries(){
-  const q=($("#lfilter").value||"").toLowerCase();
-  return Object.keys(S.saved).map(n=>{const r=JSON.parse(JSON.stringify(S.saved[n]));r.name=n;
-      const {rows}=compute(r);return {n,r,rows,key:rows[0]&&rows[0].etd!=null?rows[0].etd:1e18}})
-    .filter(e=>!q||(e.n+" "+(e.r.vessel||"")+" "+e.r.stops.map((s,i)=>s.port+" "+(s.voy||autoVoy(e.r,i))).join(" ")).toLowerCase().includes(q))
-    .sort((x,y)=>x.key-y.key);
-}
-/* Excel gibi tek tablo: Gemi | Sefer | VOY | PORT | ETA | ETD */
-function historyHTML(list,actions){
+/* ---- Seferler sekmesi: Excel gibi bacak bacak sefer zinciri ---- */
+function listRoute(){const n=$("#lship").value;if(n&&S.saved[n]){const r=JSON.parse(JSON.stringify(S.saved[n]));r.name=n;return r}return S.route}
+function legHTML(route,rows,q){
   const F="font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:14px;";
-  const B="border:1px solid #b8c4d4;padding:6px 10px;";
-  const th=x=>`<th style="${F}${B}background:#0f3d6e;color:#ffffff;text-align:left;font-weight:bold;">${x}</th>`;
-  let m=`<table style="border-collapse:collapse;width:auto"><thead><tr>${th("GEMİ")}${th("SEFER")}${th("VOY")}${th("PORT")}${th("ETA")}${th("ETD")}${actions?th(""):""}</tr></thead><tbody>`;
-  list.forEach((e,gi)=>{
-    const bg=gi%2?"#eaf1f9":"#ffffff";
-    e.rows.forEach((r,i)=>{
-      const s=e.r.stops[i]||{};
-      const top=i===0?"border-top:2px solid #0f3d6e;":"";
-      const td=(x,ex="")=>`<td style="${F}${B}${top}background:${bg};color:#111827;${ex}">${x}</td>`;
-      m+=`<tr>${td(esc(e.r.vessel||""),"white-space:nowrap;")}${td(esc(e.n),"white-space:nowrap;")}${td(esc(s.voy||autoVoy(e.r,i)),"white-space:nowrap;")}${td(esc(r.port))}${td(i===0?"-":fmt(r.eta,r.port),"font-weight:bold;white-space:nowrap;"+(i===0?"text-align:center;":""))}${td(fmt(r.etd,r.port),"font-weight:bold;white-space:nowrap;")}`;
-      if(actions&&i===0)m+=`<td rowspan="${e.rows.length}" style="${B}${top}background:${bg};vertical-align:top;white-space:nowrap"><button data-open="${esc(e.n)}" class="p">Aç</button> <button data-del="${esc(e.n)}" class="d">Sil</button></td>`;
-      m+="</tr>";
-    });
-  });
-  return m+"</tbody></table>";
+  const B="border:1px solid #b8c4d4;padding:5px 9px;";
+  const th=x=>`<th style="${F}${B}background:#0f3d6e;color:#ffffff;text-align:center;font-weight:bold;">${x}</th>`;
+  const dk=doneIdx(route);let m=`<table style="border-collapse:collapse;width:auto"><thead><tr>${["Distance","Speed","Voyage Duration","Voy","From","To","ETA","Operation Duration","ETD"].map(th).join("")}</tr></thead><tbody>`,n=0,nm=0;
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i],v=voyOf(route,i);
+    if(q&&!(v+" "+rows[i-1].port+" "+r.port).toLowerCase().includes(q))continue;
+    const done=i<=dk,bg=done?"#ffff00":(i%2?"#ffffff":"#f3f6fa");
+    const top=i>1&&v!==voyOf(route,i-1)?"border-top:2px solid #0f3d6e;":"";
+    const td=(x,ex="")=>`<td style="${F}${B}${top}background:${bg};color:#111827;${ex}">${x}</td>`;
+    m+=`<tr>${td(r.nm??"-","text-align:center;")}${td(r.speed??"","text-align:center;")}${td(hhmm(r.sea),"text-align:center;")}${td(esc(v),"white-space:nowrap;")}${td(esc(rows[i-1].port),"white-space:nowrap;")}${td(esc(r.port),"white-space:nowrap;")}${td(fmt(r.eta,r.port),"white-space:nowrap;text-align:right;")}${td(hhmm(r.op),"text-align:center;")}${td(fmt(r.etd,r.port),"white-space:nowrap;text-align:right;")}</tr>`;
+    n++;nm+=r.nm||0;
+  }
+  return {html:m+"</tbody></table>",n,nm};
 }
 function renderList(){
-  const list=historyEntries(),box=$("#listbody");
-  if(!list.length){box.innerHTML='<div class="mut">Kayıtlı sefer yok. Hesapla sekmesinde sefer hazırlayıp Kaydet\'e veya Kopyala\'ya basın, buraya otomatik eklenir.</div>';return}
-  const nrow=list.reduce((a,e)=>a+e.rows.length,0);
-  $("#lcount").textContent=`${list.length} sefer · ${nrow} satır`;
-  box.innerHTML=`<div style="overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px">${historyHTML(list,true)}</div>`;
-  box.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{const n=b.dataset.open;S.route=JSON.parse(JSON.stringify(S.saved[n]));syncInputs();persist();showTab("calc");note(`"${n}" açıldı.`)});
-  box.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{delete S.saved[b.dataset.del];persist();fillSaved();renderList()});
+  const sel=$("#lship"),cur=sel.value;
+  sel.innerHTML=`<option value="">Şu anki rota (${esc(S.route.vessel||S.route.name||"")})</option>`+Object.keys(S.saved).map(n=>`<option ${n===cur?"selected":""}>${esc(n)}</option>`).join("");
+  const route=listRoute(),{rows}=compute(route),q=($("#lfilter").value||"").toLowerCase().trim();
+  const L=legHTML(route,rows,q),box=$("#listbody");
+  $("#lcount").textContent=`${L.n} bacak · ${L.nm} nm`;
+  box.innerHTML=L.n?`<div class="card" style="padding:10px"><div style="overflow-x:auto;background:#fff;border-radius:6px">${L.html}</div></div>`:'<div class="card mut">Gösterilecek bacak yok. Hesapla sekmesinde rotaya liman ekleyin.</div>';
 }
+$("#lship").onchange=renderList;
+$("#ledit").onclick=()=>{const n=$("#lship").value;if(n&&S.saved[n]){S.route=JSON.parse(JSON.stringify(S.saved[n]));syncInputs();persist()}showTab("calc")};
 $("#lcopy").onclick=e=>{
-  const list=historyEntries();if(!list.length)return;
-  const tmp=document.createElement("div");tmp.style.cssText="position:fixed;left:-9999px;top:0;background:#fff";tmp.innerHTML=historyHTML(list,false);document.body.appendChild(tmp);
-  const rg=document.createRange();rg.selectNodeContents(tmp);const sel=getSelection();sel.removeAllRanges();sel.addRange(rg);
-  let ok=false;try{ok=document.execCommand("copy")}catch(x){}sel.removeAllRanges();tmp.remove();
-  e.target.textContent=ok?"✔ Kopyalandı":"Kopyalanamadı";setTimeout(()=>e.target.textContent="📋 Hepsini kopyala",2500)};
+  const route=listRoute(),{rows}=compute(route),L=legHTML(route,rows,($("#lfilter").value||"").toLowerCase().trim());
+  const tmp=document.createElement("div");tmp.style.cssText="position:fixed;left:-9999px;top:0;background:#fff";tmp.innerHTML=L.html;document.body.appendChild(tmp);
+  const rg=document.createRange();rg.selectNodeContents(tmp);const s=getSelection();s.removeAllRanges();s.addRange(rg);
+  let ok=false;try{ok=document.execCommand("copy")}catch(x){}s.removeAllRanges();tmp.remove();
+  e.target.textContent=ok?"✔ Kopyalandı":"Kopyalanamadı";setTimeout(()=>e.target.textContent="📋 Tabloyu kopyala",2500)};
 $("#lfilter").oninput=renderList;
 $("#speed").oninput=e=>{S.speed=+e.target.value||11;persist();renderOut()};
 $("#tfmt").onchange=e=>{S.tfmt=e.target.value;persist();renderOut()};
+$("#mailfrom").onchange=e=>{S.route.mailFrom=e.target.value===""?null:+e.target.value;persist();renderOut()};
 $("#rname").oninput=e=>{S.route.name=e.target.value;persist();renderOut()};
 $("#addstop").onclick=()=>{S.route.stops.push({port:S.ports[0]||"",op:24});persist();renderRoute();renderOut()};
 $("#clear").onclick=()=>{if(!confirm("Rota temizlensin mi?"))return;S.route.stops=[{port:S.ports[0]||"",op:0,etd:""},{port:S.ports[0]||"",op:24}];persist();renderRoute();renderOut()};

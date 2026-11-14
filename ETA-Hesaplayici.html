@@ -45,7 +45,6 @@ td select{max-width:270px;width:100%}
   <nav>
     <button id="t-calc" class="on">Hesapla</button>
     <button id="t-dist">Limanlar &amp; Mesafeler</button>
-    <button id="t-list">Seferler</button>
     <button id="t-info">Liman Bilgileri</button>
   </nav>
 </header>
@@ -54,90 +53,69 @@ td select{max-width:270px;width:100%}
 <!-- ============ HESAPLA ============ -->
 <section id="v-calc">
   <div class="card noprint">
-    <h2>Sefer</h2>
     <div class="row">
-      <label>Kayıtlı seferler
-        <select id="saved" style="min-width:200px"></select></label>
+      <label>Gemi / kayıt <select id="saved" style="min-width:170px"></select></label>
       <button id="load">Aç</button>
-      <label>Gemi <input id="vessel" placeholder="M/T PORTOLA" style="width:150px"></label>
-      <label>Sefer adı <input id="rname" placeholder="Voy 77" style="width:130px"></label>
+      <label>Gemi adı <input id="vessel" placeholder="M/T PORTOLA" style="width:140px"></label>
+      <label>Kayıt adı <input id="rname" placeholder="PORTOLA" style="width:110px"></label>
       <button id="save" class="p">Kaydet</button>
       <button id="del" class="d">Sil</button>
       <span id="savenote" class="mut"></span>
-      <label>Geçmiş (kopyalananlar)
-        <select id="hist" style="min-width:200px"></select></label>
-      <button id="histload">Geçmişten aç</button>
       <span style="flex:1"></span>
-      <label>Hız (knot) <input id="speed" type="number" step="0.1" min="0.1" style="width:80px"></label>
+      <label>Hız (knot) <input id="speed" type="number" step="0.1" min="0.1" style="width:70px"></label>
       <label>Saat gösterimi
         <select id="tfmt"><option value="hm">15:00</option><option value="ap">EAM · AM · LAM · EPM · PM · LPM</option></select></label>
       <label style="flex-direction:row;align-items:center;gap:6px"><input id="showgmt" type="checkbox"> Mailde GMT yaz</label>
     </div>
   </div>
 
-  <div class="card noprint">
-    <h2>Rota <span class="mut">— 1. satır: çıkış limanı ve ETD'si. Sonraki satırlar: liman, operasyon süresi. "Sabit" kutularını yalnızca elinizde kesin ETA/ETD varsa doldurun.</span></h2>
-    <table id="route">
-      <thead><tr>
-        <th>#</th><th>Voy</th><th>Liman</th><th>Operasyon<br>(gün / saat)</th><th>Mesafe (nm)<br><span class="mut">boş = tablodan</span></th>
-        <th>Hız<br><span class="mut">boş = genel</span></th><th>ETA sabit</th><th>ETD sabit / başlangıç</th><th></th></tr></thead>
-      <tbody></tbody>
-    </table>
-    <div class="row" style="margin-top:10px">
-      <button id="addstop" class="p">+ Liman ekle</button>
-      <button id="clear">Rotayı temizle</button>
+  <div class="card">
+    <h2>Sefer zinciri</h2>
+    <p class="mut" style="margin:0 0 8px">Excel'deki gibi: her satır bir bacak. <b>☐</b> işaretlediğiniz limanlar aşağıdaki mail tablosuna girer. <span style="background:var(--done);padding:0 4px">Sarı</span> satırlar gerçekleşmiş. ETA veya ETD'ye dokunup kesin saat girebilirsiniz (📌).</p>
+    <div class="row noprint" style="margin-bottom:8px">
+      <button id="selrest">Kalanları seç</button>
+      <button id="selnone">Seçimi temizle</button>
+      <span id="chaininfo" class="mut"></span>
     </div>
-    <details style="margin-top:12px"><summary class="mut" style="cursor:pointer"><b>Toplu sefer girişi</b> — listeyi yapıştırın, tüm limanlar tek seferde eklensin</summary>
+    <div style="overflow-x:auto"><table id="chain"></table></div>
+    <div class="row noprint" style="margin-top:10px">
+      <button id="addstop" class="p">+ Sefer ekle</button>
+      <button id="lcopy">📋 Tüm tabloyu kopyala</button>
+      <button id="clear" class="d">Zinciri temizle</button>
+    </div>
+    <details class="noprint" style="margin-top:12px"><summary class="mut" style="cursor:pointer"><b>Toplu sefer girişi</b> — listeyi yapıştırın, hepsi zincirin sonuna eklensin</summary>
       <div class="row" style="margin-top:8px;align-items:start">
-        <label style="flex:1;min-width:280px">Her satıra bir liman. İsteğe bağlı: <span class="mut">Voy 77 ; Lime Tree Bay ; 1 (gün) &nbsp;veya&nbsp; 12h</span>. Liman adının bir kısmı yeterli.
-          <textarea id="btxt" rows="8" placeholder="Voy 77 ; Lime Tree Bay ; 1&#10;Voy 77 ; Grenlec ; 1&#10;Voy 78 ; Suhoza&#10;Voy 78 ; Beekhuizen" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit"></textarea></label>
+        <label style="flex:1;min-width:280px">Her satıra bir liman. İsteğe bağlı: <span class="mut">Voy 78 ; Lime Tree Bay ; 24:00</span>. Liman adının bir kısmı yeterli.
+          <textarea id="btxt" rows="7" placeholder="Voy 78 ; Lime Tree Bay ; 24:00&#10;Voy 78 ; Grenlec&#10;Voy 78 ; Suhoza ; 36:00" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit"></textarea></label>
         <div style="display:flex;flex-direction:column;gap:8px">
-          <label>Satırda Voy yoksa <input id="bvoy" placeholder="Voy 77" style="width:120px"></label>
-          <label style="flex-direction:row;align-items:center;gap:6px"><input id="breplace" type="checkbox"> Mevcut rotanın yerine koy</label>
-          <button id="bgo" class="p">Rotaya ekle</button>
+          <label>Satırda Voy yoksa <input id="bvoy" placeholder="Voy 78" style="width:120px"></label>
+          <label style="flex-direction:row;align-items:center;gap:6px"><input id="breplace" type="checkbox"> Zinciri silip yerine koy</label>
+          <button id="bgo" class="p">Zincire ekle</button>
           <span id="bnote" class="mut" style="max-width:260px"></span>
         </div>
       </div>
     </details>
-    <div class="hide">
-    </div>
+    <div id="msgs" style="margin-top:8px"></div>
   </div>
 
   <div class="card">
     <h2 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span id="outtitle">Sonuç</span>
+      <span>Sonuç (mail)</span><span id="outsub" class="mut" style="font-weight:400"></span>
       <span style="flex:1"></span>
       <span class="noprint" style="display:flex;gap:6px">
-        <label style="flex-direction:row;align-items:center;gap:6px">Mail şu limandan başlasın <select id="mailfrom" style="max-width:260px"></select></label>
-        <button id="copy">📋 Kopyala (Outlook/Excel'e yapıştır)</button>
+        <button id="copy" class="p">📋 Kopyala (maile yapıştır)</button>
         <button id="csv">⬇ Excel (CSV)</button>
         <button id="print">🖨 Yazdır</button>
       </span>
     </h2>
-    <div id="msgs"></div>
     <div id="outwrap" style="overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px"><div id="out"></div></div>
-    <p class="mut" style="margin:6px 0 0">Aşağıdaki tablo mailde de aynen böyle görünür. Kopyala düğmesine basıp mailinize yapıştırın.</p>
-    <details class="noprint" id="pnotes" style="margin-top:12px" open><summary class="mut" style="cursor:pointer">Rotadaki limanların notları</summary><div id="pnotesbody" style="margin-top:6px"></div></details>
-    <details class="noprint" style="margin-top:12px"><summary class="mut" style="cursor:pointer">Detay (mesafe, seyir süresi, operasyon)</summary><table id="detail"></table></details>
+    <p class="mut" style="margin:6px 0 0">Kopyaladığınız limanların yanına zincirde ✓ işareti düşer.</p>
+    <details class="noprint" id="pnotes" style="margin-top:12px"><summary class="mut" style="cursor:pointer">Bu limanların notları (draft, römorkör, gün ışığı…)</summary><div id="pnotesbody" style="margin-top:6px"></div></details>
     <p class="mut" id="copied"></p>
   </div>
 </section>
 
-<!-- ============ LİMANLAR ============ -->
-<section id="v-list" class="hide">
-  <div class="card">
-    <h2>Sefer zinciri <span class="mut">— Excel'deki gibi: her satır bir bacak (From → To). Sarı satırlar gerçekleşmiş (kesin ETD girilmiş) bacaklar.</span></h2>
-    <div class="row" style="align-items:end">
-      <label>Gemi / kayıt <select id="lship" style="min-width:220px"></select></label>
-      <label>Ara <input id="lfilter" placeholder="voy veya liman" style="width:180px"></label>
-      <button id="lcopy">📋 Tabloyu kopyala</button>
-      <button id="ledit" class="p">Hesapla'da düzenle</button>
-      <span id="lcount" class="mut"></span>
-    </div>
-  </div>
-  <div id="listbody"></div>
-</section>
-
+<!-- ============ LİMAN BİLGİLERİ ============ -->
 <section id="v-info" class="hide">
   <div class="card">
     <h2>Liman bilgisi</h2>
@@ -380,46 +358,8 @@ function compute(route){
   return {rows,msgs};
 }
 
-/* ---------- çizim: rota ---------- */
+/* ---------- yardımcılar ---------- */
 function portOptions(sel){return S.ports.map(p=>`<option ${p===sel?"selected":""}>${esc(p)}</option>`).join("")}
-function renderRoute(){
-  const tb=$("#route tbody"); tb.innerHTML="";
-  S.route.stops.forEach((s,i)=>{
-    const tr=document.createElement("tr");
-    const first=i===0;
-    if(i<=doneIdx(S.route))tr.style.background="var(--done)";
-    tr.innerHTML=`<td>${i+1}</td>
-      <td><input data-k="voy" value="${esc(s.voy||"")}" placeholder="${esc(autoVoy(S.route,i))}" style="width:84px"></td>
-      <td><select data-k="port">${portOptions(s.port)}</select> <span class="mut">${gmtTxt(s.port)}</span></td>
-      <td>${first?'<span class="mut">—</span>':`<input type="number" min="0" data-k="opd" value="${Math.floor((s.op||0)/24)}" title="gün"> g
-        <input type="number" min="0" max="23" step="0.5" data-k="oph" value="${(s.op||0)%24}" title="saat"> s`}</td>
-      <td>${first?'<span class="mut">—</span>':`<input type="number" min="0" data-k="nm" value="${s.nm??""}" style="width:80px">`}</td>
-      <td>${first?'<span class="mut">—</span>':`<input type="number" min="0" step="0.1" data-k="speed" value="${s.speed??""}">`}</td>
-      <td>${first?'<span class="mut">—</span>':`<input type="datetime-local" data-k="eta" value="${s.eta??""}">`}</td>
-      <td><input type="datetime-local" data-k="etd" value="${s.etd??""}"></td>
-      <td style="white-space:nowrap">
-        <button data-a="up" title="Yukarı">↑</button><button data-a="dn" title="Aşağı">↓</button><button data-a="rm" class="d" title="Sil">✕</button></td>`;
-    tr.querySelectorAll("[data-k]").forEach(el=>el.addEventListener("input",()=>{
-      const k=el.dataset.k;
-      if(k==="opd"||k==="oph"){
-        const d=+tr.querySelector('[data-k=opd]').value||0,h=+tr.querySelector('[data-k=oph]').value||0;
-        s.op=d*24+h;
-      }else s[k]=el.value;
-      if(k==="port"){const sp=tr.querySelector("td:nth-child(3) .mut");if(sp)sp.textContent=gmtTxt(el.value)}
-      renderOut();
-      persist();
-    }));
-    tr.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
-      const a=b.dataset.a, arr=S.route.stops;
-      if(a==="rm"&&arr.length>1)arr.splice(i,1);
-      else if(a==="up"&&i>0)[arr[i-1],arr[i]]=[arr[i],arr[i-1]];
-      else if(a==="dn"&&i<arr.length-1)[arr[i+1],arr[i]]=[arr[i],arr[i+1]];
-      persist();renderRoute();renderOut();
-    }));
-    tb.appendChild(tr);
-  });
-}
-/* ---------- çizim: sonuç ---------- */
 function autoVoy(route,i){
   for(let j=i-1;j>=0;j--){const v=route.stops[j]&&route.stops[j].voy;if(v)return v}
   const nm=route.name||"",vm=/^(.*?)(\d+)(\D*)$/.exec(nm);
@@ -428,38 +368,112 @@ function autoVoy(route,i){
 const voyOf=(route,i)=>(route.stops[i]&&route.stops[i].voy)||autoVoy(route,i);
 /* son kesin ETD girilmiş liman = gemi orada / oradan çıktı; öncesi gerçekleşmiş */
 function doneIdx(route){let k=-1;route.stops.forEach((s,i)=>{if(parseDT(s.etd)!=null)k=i});return k}
-function mailStart(route){const f=route.mailFrom;if(f!=null&&f!==""&&+f>=0&&+f<route.stops.length)return +f;return Math.max(0,doneIdx(route))}
 const hhmm=h=>{if(h==null)return "-";const t=Math.floor(h*60+1e-6);return `${p2(Math.floor(t/60))}:${p2(t%60)}`};
+const toISO=ms=>ms==null?"":new Date(ms).toISOString().slice(0,16);
+function parseHM(v){v=String(v||"").trim().replace(",",".");if(!v)return null;
+  let m=/^(\d+):(\d{1,2})$/.exec(v);if(m)return +m[1]+ +m[2]/60;
+  m=/^(\d+(?:\.\d+)?)\s*(g|gün|gun|d)$/i.exec(v);if(m)return +m[1]*24;
+  m=/^(\d+(?:\.\d+)?)\s*(h|s|sa|saat)?$/i.exec(v);if(m)return +m[1];return null}
+/* mail satırları: seçilenler; seçim yoksa gemi bulunduğu limandan itibaren */
+function mailIdx(route){
+  const sel=route.stops.map((s,i)=>s.sel?i:-1).filter(i=>i>=0);
+  if(sel.length)return sel;
+  const k=Math.max(0,doneIdx(route));return route.stops.map((s,i)=>i).filter(i=>i>=k);
+}
 function mailHTML(rows,route){
   const F="font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:14px;";
   const B="border:1px solid #b8c4d4;padding:7px 12px;";
   const th=x=>`<th style="${F}${B}background:#0f3d6e;color:#ffffff;text-align:left;font-weight:bold;">${x}</th>`;
   let m=`<table style="border-collapse:collapse;width:auto"><thead><tr>${th("VOY")}${th("PORT")}${th("ETA")}${th("ETD")}</tr></thead><tbody>`;
-  const st0=mailStart(route);
-  rows.forEach((r,i)=>{ if(i<st0)return; const k=i-st0;
+  mailIdx(route).forEach((i,k)=>{const r=rows[i];if(!r)return;
     const bg=k%2?"#f1f5fa":"#ffffff";
+    const noEta=i===0||(k===0&&parseDT(route.stops[i].etd)!=null);   // gemi zaten orada
     const td=(x,ex="")=>`<td style="${F}${B}background:${bg};color:#111827;${ex}">${x}</td>`;
-    m+=`<tr>${td(esc(voyOf(route,i)),"white-space:nowrap;")}${td(esc(r.port))}${td(k===0?"-":fmt(r.eta,r.port),"font-weight:bold;white-space:nowrap;"+(k===0?"text-align:center;":""))}${td(fmt(r.etd,r.port),"font-weight:bold;white-space:nowrap;")}</tr>`;
+    m+=`<tr>${td(esc(voyOf(route,i)),"white-space:nowrap;")}${td(esc(r.port))}${td(noEta?"-":fmt(r.eta,r.port),"font-weight:bold;white-space:nowrap;"+(noEta?"text-align:center;":""))}${td(fmt(r.etd,r.port),"font-weight:bold;white-space:nowrap;")}</tr>`;
   });
   return m+"</tbody></table>";
 }
+/* Excel biçiminde tüm zincir (kopyalamak için) */
+function legHTML(route,rows){
+  const F="font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:14px;";
+  const B="border:1px solid #b8c4d4;padding:5px 9px;";
+  const th=x=>`<th style="${F}${B}background:#0f3d6e;color:#ffffff;text-align:center;font-weight:bold;">${x}</th>`;
+  const dk=doneIdx(route);let m=`<table style="border-collapse:collapse;width:auto"><thead><tr>${["Distance","Speed","Voyage Duration","Voy","From","To","ETA","Operation Duration","ETD"].map(th).join("")}</tr></thead><tbody>`;
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i],bg=i<=dk?"#ffff00":"#ffffff";
+    const td=(x,ex="")=>`<td style="${F}${B}background:${bg};color:#111827;${ex}">${x}</td>`;
+    m+=`<tr>${td(r.nm??"-","text-align:center;")}${td(r.speed??"","text-align:center;")}${td(hhmm(r.sea),"text-align:center;")}${td(esc(voyOf(route,i)),"white-space:nowrap;")}${td(esc(rows[i-1].port),"white-space:nowrap;")}${td(esc(r.port),"white-space:nowrap;")}${td(fmt(r.eta,r.port),"white-space:nowrap;")}${td(hhmm(r.op),"text-align:center;")}${td(fmt(r.etd,r.port),"white-space:nowrap;")}</tr>`;
+  }
+  return m+"</tbody></table>";
+}
+
+/* ---------- sefer zinciri (düzenlenebilir Excel tablosu) ---------- */
+const short=s=>String(s).replace(/ iagw and wp$/,"");
+function renderRoute(){
+  const {rows}=compute(),st=S.route.stops,dk=doneIdx(S.route),tb=$("#chain");
+  const nsel=st.filter(s=>s.sel).length;
+  $("#chaininfo").textContent=`${Math.max(0,st.length-1)} bacak · ${rows.reduce((a,r)=>a+(r.nm||0),0)} nm · ${nsel?nsel+" liman seçili":"seçim yok (otomatik)"}`;
+  let h=`<thead><tr><th title="Maile ekle">✉</th><th>#</th><th>Voy</th><th>From</th><th>To</th><th>Distance</th><th>Speed</th><th>Voyage<br>Duration</th><th>ETA</th><th>Operation<br>Duration</th><th>ETD</th><th>Gönderildi</th><th></th></tr></thead><tbody>`;
+  st.forEach((s,i)=>{
+    const r=rows[i]||{},first=i===0;
+    const lk=first?null:lookup(st[i-1].port,s.port);
+    const vchg=i>0&&voyOf(S.route,i)!==voyOf(S.route,i-1)?"border-top:2px solid var(--acc);":"";
+    const dt=(k,ms)=>{const fixed=parseDT(s[k])!=null;
+      return `<span class="dt" data-dt="${k}" data-i="${i}" title="Dokunun: kesin saat girin" style="cursor:pointer;white-space:nowrap;${fixed?"font-weight:600":""}">${fixed?"📌 ":""}${ms==null?'<span class="mut">— gir</span>':esc(short(fmt(ms,s.port)))}</span>`};
+    h+=`<tr data-i="${i}" style="${i<=dk?"background:var(--done);":""}${vchg}">
+      <td><input type="checkbox" data-k="sel" ${s.sel?"checked":""}></td>
+      <td class="mut">${i+1}</td>
+      <td><input data-k="voy" value="${esc(s.voy||"")}" placeholder="${esc(autoVoy(S.route,i))}" style="width:70px"></td>
+      <td style="white-space:nowrap">${first?'<span class="mut">çıkış</span>':esc(st[i-1].port)}</td>
+      <td style="white-space:nowrap"><select data-k="port" style="width:auto;min-width:210px;max-width:260px;font-weight:600">${portOptions(s.port)}</select> <span class="mut">${gmtTxt(s.port)}</span></td>
+      <td>${first?"":`<input type="number" min="0" data-k="nm" value="${s.nm??""}" placeholder="${lk?lk.nm:"?"}" style="width:62px${!lk&&(s.nm==null||s.nm==="")?";border-color:var(--bad)":""}">`}</td>
+      <td>${first?"":`<input type="number" min="0" step="0.1" data-k="speed" value="${s.speed??""}" placeholder="${S.speed}" style="width:52px">`}</td>
+      <td style="text-align:center">${first?"":hhmm(r.sea)}</td>
+      <td>${first?'<span class="mut">-</span>':dt("eta",r.eta)}</td>
+      <td>${first?"":`<input data-k="op" value="${hhmm(s.op||0)}" style="width:58px;text-align:center" title="ss:dd, örn. 24:00 veya 36:00">`}</td>
+      <td>${dt("etd",r.etd)}</td>
+      <td>${s.sent?`<span class="sent" data-i="${i}" title="Kaldırmak için dokunun" style="color:var(--ok);cursor:pointer;white-space:nowrap">✓ ${esc(s.sent)}</span>`:""}</td>
+      <td style="white-space:nowrap"><button data-a="up" title="Yukarı">↑</button><button data-a="dn" title="Aşağı">↓</button><button data-a="rm" class="d" title="Sil">✕</button></td></tr>`;
+  });
+  tb.innerHTML=h+"</tbody>";
+  tb.querySelectorAll("tr[data-i]").forEach(tr=>{
+    const i=+tr.dataset.i,s=st[i];
+    tr.querySelectorAll("[data-k]").forEach(el=>el.addEventListener("change",()=>{
+      const k=el.dataset.k;
+      if(k==="sel")s.sel=el.checked;
+      else if(k==="op"){const v=parseHM(el.value);if(v!=null)s.op=v}
+      else s[k]=el.value;
+      persist();renderRoute();renderOut();
+    }));
+    tr.querySelectorAll("button[data-a]").forEach(b=>b.onclick=()=>{
+      const a=b.dataset.a;
+      if(a==="rm"&&st.length>1)st.splice(i,1);
+      else if(a==="up"&&i>0)[st[i-1],st[i]]=[st[i],st[i-1]];
+      else if(a==="dn"&&i<st.length-1)[st[i+1],st[i]]=[st[i],st[i+1]];
+      persist();renderRoute();renderOut();
+    });
+  });
+  tb.querySelectorAll(".sent").forEach(el=>el.onclick=()=>{delete st[+el.dataset.i].sent;persist();renderRoute()});
+  tb.querySelectorAll(".dt").forEach(el=>el.onclick=()=>{
+    const i=+el.dataset.i,k=el.dataset.dt,s=st[i],r=rows[i];
+    const td=el.parentNode,cur=s[k]||toISO(k==="eta"?r.eta:r.etd);
+    td.innerHTML=`<input type="datetime-local" value="${cur}" style="width:170px"> <button data-x="ok" class="p" title="Kesin saat olarak kaydet">✓</button> <button data-x="auto" title="Otomatik hesaplansın">Oto</button>`;
+    const inp=td.querySelector("input");inp.focus();
+    td.querySelector('[data-x=ok]').onclick=()=>{s[k]=inp.value;persist();renderRoute();renderOut()};
+    td.querySelector('[data-x=auto]').onclick=()=>{s[k]="";persist();renderRoute();renderOut()};
+  });
+}
+
+/* ---------- sonuç (mail) ---------- */
 let lastRows=[];
 function renderOut(){
   const {rows,msgs}=compute(); lastRows=rows;
-  $("#outtitle").textContent=`Sonuç — ${S.route.name||"Sefer"}  (hız ${S.speed} kn)`;
   $("#msgs").innerHTML=msgs.map(m=>`<div class="warn">${esc(m)}</div>`).join("");
-  const dk=Math.max(0,doneIdx(S.route));
-  $("#mailfrom").innerHTML=`<option value="">Otomatik (#${dk+1} ${esc(S.route.stops[dk]?S.route.stops[dk].port:"")})</option>`+
-    S.route.stops.map((s,i)=>`<option value="${i}" ${String(S.route.mailFrom)===String(i)?"selected":""}>#${i+1} ${esc(voyOf(S.route,i))} · ${esc(s.port)}</option>`).join("");
+  const idx=mailIdx(S.route),nsel=S.route.stops.filter(s=>s.sel).length;
+  $("#outsub").textContent=nsel?`— seçtiğiniz ${nsel} liman`:`— seçim yok: gemi bulunduğu limandan itibaren (${idx.length} liman)`;
   $("#out").innerHTML=mailHTML(rows,S.route);
-  let h=`<thead><tr><th>#</th><th>PORT</th><th>GMT</th><th>Mesafe (nm)</th><th>Seyir süresi</th><th>ETA</th><th>Operasyon</th><th>ETD</th></tr></thead><tbody>`;
-  rows.forEach((r,i)=>{
-    h+=`<tr><td>${i+1}</td><td>${esc(r.port)}</td><td>${gmtTxt(r.port)}</td><td>${r.nm??"-"}</td><td>${dur(r.sea)}</td>
-        <td>${i===0?"-":fmt(r.eta)}</td><td>${i===0?"-":dur(r.op)}</td><td>${fmt(r.etd)}</td></tr>`;
-  });
-  $("#detail").innerHTML=h+"</tbody>";
   const seen=new Set(),lines=[];
-  rows.forEach(r=>{ if(seen.has(r.port))return;seen.add(r.port);
+  idx.forEach(k=>{const r=rows[k];if(!r||seen.has(r.port))return;seen.add(r.port);
     const i=S.info[r.port]||{},ok=v=>v&&v!=="N/A"&&v!=="-";
     const parts=[];
     if(ok(i.jetty))parts.push("Jetty: "+i.jetty);
@@ -504,6 +518,7 @@ function renderDist(){
 
 /* ---------- kayıtlı seferler ---------- */
 function fillHist(){
+  if(!$("#hist"))return;
   S.history=S.history||[];
   $("#hist").innerHTML=S.history.length?S.history.map((h,i)=>`<option value="${i}">${esc(h.when)} — ${esc(h.route.name||"Sefer")}</option>`).join(""):"<option value=''>(henüz yok)</option>";
 }
@@ -522,10 +537,10 @@ function fillSaved(){
 
 /* ---------- olaylar ---------- */
 function showTab(n){
-  ["calc","dist","info","list"].forEach(x=>{$("#v-"+x).classList.toggle("hide",x!==n);$("#t-"+x).classList.toggle("on",x===n)});
-  if(n==="calc"){renderRoute();renderOut()} if(n==="dist")renderDist(); if(n==="info")renderInfo(); if(n==="list")renderList();
+  ["calc","dist","info"].forEach(x=>{$("#v-"+x).classList.toggle("hide",x!==n);$("#t-"+x).classList.toggle("on",x===n)});
+  if(n==="calc"){renderRoute();renderOut()} if(n==="dist")renderDist(); if(n==="info")renderInfo();
 }
-$("#t-calc").onclick=()=>showTab("calc");$("#t-dist").onclick=()=>showTab("dist");$("#t-info").onclick=()=>showTab("info");$("#t-list").onclick=()=>showTab("list");
+$("#t-calc").onclick=()=>showTab("calc");$("#t-dist").onclick=()=>showTab("dist");$("#t-info").onclick=()=>showTab("info");
 $("#showgmt").checked=!!S.showGmt;
 $("#showgmt").onchange=e=>{S.showGmt=e.target.checked;persist();renderOut()};
 /* ---------- liman bilgisi sekmesi ---------- */
@@ -586,51 +601,24 @@ $("#bgo").onclick=()=>{
   $("#bnote").textContent=`${out.length} liman eklendi.`+(miss.length?` Okunamayan ${miss.length} satır: `+miss.join(" / "):"")+(keepFirst?"":" 1. satıra ETD girmeyi unutmayın.");
   if(!miss.length)$("#btxt").value="";
 };
-/* ---- Seferler sekmesi: Excel gibi bacak bacak sefer zinciri ---- */
-function listRoute(){const n=$("#lship").value;if(n&&S.saved[n]){const r=JSON.parse(JSON.stringify(S.saved[n]));r.name=n;return r}return S.route}
-function legHTML(route,rows,q){
-  const F="font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:14px;";
-  const B="border:1px solid #b8c4d4;padding:5px 9px;";
-  const th=x=>`<th style="${F}${B}background:#0f3d6e;color:#ffffff;text-align:center;font-weight:bold;">${x}</th>`;
-  const dk=doneIdx(route);let m=`<table style="border-collapse:collapse;width:auto"><thead><tr>${["Distance","Speed","Voyage Duration","Voy","From","To","ETA","Operation Duration","ETD"].map(th).join("")}</tr></thead><tbody>`,n=0,nm=0;
-  for(let i=1;i<rows.length;i++){
-    const r=rows[i],v=voyOf(route,i);
-    if(q&&!(v+" "+rows[i-1].port+" "+r.port).toLowerCase().includes(q))continue;
-    const done=i<=dk,bg=done?"#ffff00":(i%2?"#ffffff":"#f3f6fa");
-    const top=i>1&&v!==voyOf(route,i-1)?"border-top:2px solid #0f3d6e;":"";
-    const td=(x,ex="")=>`<td style="${F}${B}${top}background:${bg};color:#111827;${ex}">${x}</td>`;
-    m+=`<tr>${td(r.nm??"-","text-align:center;")}${td(r.speed??"","text-align:center;")}${td(hhmm(r.sea),"text-align:center;")}${td(esc(v),"white-space:nowrap;")}${td(esc(rows[i-1].port),"white-space:nowrap;")}${td(esc(r.port),"white-space:nowrap;")}${td(fmt(r.eta,r.port),"white-space:nowrap;text-align:right;")}${td(hhmm(r.op),"text-align:center;")}${td(fmt(r.etd,r.port),"white-space:nowrap;text-align:right;")}</tr>`;
-    n++;nm+=r.nm||0;
-  }
-  return {html:m+"</tbody></table>",n,nm};
-}
-function renderList(){
-  const sel=$("#lship"),cur=sel.value;
-  sel.innerHTML=`<option value="">Şu anki rota (${esc(S.route.vessel||S.route.name||"")})</option>`+Object.keys(S.saved).map(n=>`<option ${n===cur?"selected":""}>${esc(n)}</option>`).join("");
-  const route=listRoute(),{rows}=compute(route),q=($("#lfilter").value||"").toLowerCase().trim();
-  const L=legHTML(route,rows,q),box=$("#listbody");
-  $("#lcount").textContent=`${L.n} bacak · ${L.nm} nm`;
-  box.innerHTML=L.n?`<div class="card" style="padding:10px"><div style="overflow-x:auto;background:#fff;border-radius:6px">${L.html}</div></div>`:'<div class="card mut">Gösterilecek bacak yok. Hesapla sekmesinde rotaya liman ekleyin.</div>';
-}
-$("#lship").onchange=renderList;
-$("#ledit").onclick=()=>{const n=$("#lship").value;if(n&&S.saved[n]){S.route=JSON.parse(JSON.stringify(S.saved[n]));syncInputs();persist()}showTab("calc")};
-$("#lcopy").onclick=e=>{
-  const route=listRoute(),{rows}=compute(route),L=legHTML(route,rows,($("#lfilter").value||"").toLowerCase().trim());
-  const tmp=document.createElement("div");tmp.style.cssText="position:fixed;left:-9999px;top:0;background:#fff";tmp.innerHTML=L.html;document.body.appendChild(tmp);
+/* ---- zincir: kopyala / seçim ---- */
+function copyHTML(html){
+  const tmp=document.createElement("div");tmp.style.cssText="position:fixed;left:-9999px;top:0;background:#fff";tmp.innerHTML=html;document.body.appendChild(tmp);
   const rg=document.createRange();rg.selectNodeContents(tmp);const s=getSelection();s.removeAllRanges();s.addRange(rg);
-  let ok=false;try{ok=document.execCommand("copy")}catch(x){}s.removeAllRanges();tmp.remove();
-  e.target.textContent=ok?"✔ Kopyalandı":"Kopyalanamadı";setTimeout(()=>e.target.textContent="📋 Tabloyu kopyala",2500)};
-$("#lfilter").oninput=renderList;
+  let ok=false;try{ok=document.execCommand("copy")}catch(x){}s.removeAllRanges();tmp.remove();return ok}
+$("#lcopy").onclick=e=>{const ok=copyHTML(legHTML(S.route,compute().rows));
+  e.target.textContent=ok?"✔ Kopyalandı":"Kopyalanamadı";setTimeout(()=>e.target.textContent="📋 Tüm tabloyu kopyala",2500)};
+$("#selrest").onclick=()=>{const k=Math.max(0,doneIdx(S.route));S.route.stops.forEach((s,i)=>s.sel=i>=k);persist();renderRoute();renderOut()};
+$("#selnone").onclick=()=>{S.route.stops.forEach(s=>delete s.sel);persist();renderRoute();renderOut()};
 $("#speed").oninput=e=>{S.speed=+e.target.value||11;persist();renderOut()};
 $("#tfmt").onchange=e=>{S.tfmt=e.target.value;persist();renderOut()};
-$("#mailfrom").onchange=e=>{S.route.mailFrom=e.target.value===""?null:+e.target.value;persist();renderOut()};
 $("#rname").oninput=e=>{S.route.name=e.target.value;persist();renderOut()};
-$("#addstop").onclick=()=>{S.route.stops.push({port:S.ports[0]||"",op:24});persist();renderRoute();renderOut()};
+$("#addstop").onclick=()=>{const st=S.route.stops,last=st[st.length-1];st.push({port:last?last.port:(S.ports[0]||""),op:24,voy:last?voyOf(S.route,st.length-1):""});persist();renderRoute();renderOut();const sel=$("#chain tbody tr:last-child select");if(sel)sel.focus()};
 $("#clear").onclick=()=>{if(!confirm("Rota temizlensin mi?"))return;S.route.stops=[{port:S.ports[0]||"",op:0,etd:""},{port:S.ports[0]||"",op:24}];persist();renderRoute();renderOut()};
 $("#save").onclick=()=>{const n=($("#rname").value||"").trim();if(!n){alert("Sefer adı yazın.");return}
   S.route.name=n;S.saved[n]=JSON.parse(JSON.stringify(S.route));persist();fillSaved();$("#saved").value=n;renderOut();note(`"${n}" kaydedildi.`)};
 $("#load").onclick=()=>{const n=$("#saved").value;if(!n||!S.saved[n])return;S.route=JSON.parse(JSON.stringify(S.saved[n]));syncInputs();persist();renderRoute();renderOut();note(`"${n}" açıldı.`)};
-$("#histload").onclick=()=>{const h=S.history[+$("#hist").value];if(!h)return;S.route=JSON.parse(JSON.stringify(h.route));syncInputs();persist();renderRoute();renderOut();note("Geçmişten açıldı.")};
+window._histload=()=>{const h=S.history[+$("#hist").value];if(!h)return;S.route=JSON.parse(JSON.stringify(h.route));syncInputs();persist();renderRoute();renderOut();note("Geçmişten açıldı.")};
 $("#del").onclick=()=>{const n=$("#saved").value;if(!n||!confirm(`"${n}" silinsin mi?`))return;delete S.saved[n];persist();fillSaved();note(`"${n}" silindi.`)};
 $("#addport").onclick=()=>{const p=$("#newport").value.trim();if(!p)return;if(!S.ports.includes(p))S.ports.push(p);$("#newport").value="";persist();renderDist()};
 $("#adddist").onclick=()=>{const a=$("#da").value,b=$("#db").value,nm=+$("#dn").value;
@@ -644,16 +632,15 @@ $("#dfilter").oninput=renderDist;
 $("#copy").onclick=()=>{
   pushHist();
   const sn=(S.route.name||"").trim();if(sn){S.saved[sn]=JSON.parse(JSON.stringify(S.route));fillSaved();persist()}
-  const t=$("#out"),r=document.createRange();r.selectNodeContents(t);
-  const sel=getSelection();sel.removeAllRanges();sel.addRange(r);
-  let ok=false;try{ok=document.execCommand("copy")}catch(e){}
-  sel.removeAllRanges();
+  const ok=copyHTML(mailHTML(compute().rows,S.route));
+  if(ok){const d=new Date(),w=`${p2(d.getDate())}/${p2(d.getMonth()+1)} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+    mailIdx(S.route).forEach(i=>{S.route.stops[i].sent=w});persist();renderRoute()}
   $("#copied").textContent=ok?"Kopyalandı — Outlook veya Excel'e yapıştırabilirsiniz.":"Kopyalanamadı; tabloyu elle seçip Ctrl+C yapın.";
 };
 $("#csv").onclick=()=>{
   const q=v=>`"${String(v).replace(/"/g,'""')}"`;
   const lines=[["VOY","PORT","ETA","ETD"].map(q).join(";")];
-  lastRows.forEach((r,i)=>lines.push([(S.route.stops[i]||{}).voy||autoVoy(S.route,i),r.port,i?fmt(r.eta):"-",fmt(r.etd)].map(q).join(";")));
+  mailIdx(S.route).forEach(i=>{const r=lastRows[i];lines.push([voyOf(S.route,i),r.port,i?fmt(r.eta):"-",fmt(r.etd)].map(q).join(";"))});
   const blob=new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download=`ETA_${(S.route.name||"sefer").replace(/[^\w-]+/g,"_")}.csv`;a.click();

@@ -143,14 +143,15 @@ td select{max-width:270px;width:100%}
 
 <section id="v-dist" class="hide">
   <div class="card">
-    <h2>Limanlar <span id="portcount" class="mut" style="font-weight:400"></span></h2>
-    <div id="portsbox" style="max-width:560px;border:1px solid var(--line);border-radius:8px;overflow:hidden">
+    <details id="portsdet"><summary style="cursor:pointer;font-weight:600;font-size:15px">Limanlar <span id="portcount" class="mut" style="font-weight:400"></span> <span class="mut" style="font-weight:400">— listeyi açmak için tıklayın</span></summary>
+    <div id="portsbox" style="max-width:560px;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:10px">
       <div style="display:flex;gap:6px;padding:8px;background:var(--acc2);border-bottom:1px solid var(--line)">
         <input id="newport" placeholder="Yeni liman ekle: Liman / Ülke" style="flex:1;min-width:0">
         <button id="addport" class="p">Ekle</button>
       </div>
       <div id="portchips" style="max-height:360px;overflow-y:auto"></div>
     </div>
+    </details>
   </div>
   <div class="card">
     <h2>Mesafeler (nm) <span class="mut">— ters yön otomatik aynı kabul edilir (A→B kayıtlıysa B→A da kullanılır)</span></h2>

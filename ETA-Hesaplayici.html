@@ -93,7 +93,7 @@ td select{max-width:270px;width:100%}
       <button id="lcopy">📋 Tüm tabloyu kopyala</button>
       <button id="clear" class="d">Zinciri temizle</button>
     </div>
-    <details class="noprint" style="margin-top:12px"><summary class="mut" style="cursor:pointer"><b>Toplu sefer girişi</b> — listeyi yapıştırın, hepsi zincirin sonuna eklensin</summary>
+    <details class="noprint hide" style="margin-top:12px"><summary class="mut" style="cursor:pointer"><b>Toplu sefer girişi</b> — listeyi yapıştırın, hepsi zincirin sonuna eklensin</summary>
       <div class="row" style="margin-top:8px;align-items:start">
         <label style="flex:1;min-width:280px">Her satıra bir liman. İsteğe bağlı: <span class="mut">Voy 78 ; Lime Tree Bay ; 24:00</span>. Liman adının bir kısmı yeterli.
           <textarea id="btxt" rows="7" placeholder="Voy 78 ; Lime Tree Bay ; 24:00&#10;Voy 78 ; Grenlec&#10;Voy 78 ; Suhoza ; 36:00" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit"></textarea></label>
@@ -119,7 +119,6 @@ td select{max-width:270px;width:100%}
       </span>
     </h2>
     <div id="outwrap" style="overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px"><div id="out"></div></div>
-    <p class="mut" style="margin:6px 0 0">Kopyaladığınız limanların yanına zincirde ✓ işareti düşer.</p>
     <details class="noprint" id="pnotes" style="margin-top:12px"><summary class="mut" style="cursor:pointer">Bu limanların notları (draft, römorkör, gün ışığı…)</summary><div id="pnotesbody" style="margin-top:6px"></div></details>
     <p class="mut" id="copied"></p>
   </div>
@@ -143,8 +142,9 @@ td select{max-width:270px;width:100%}
 
 <section id="v-dist" class="hide">
   <div class="card">
-    <h2>Limanlar</h2>
-    <div class="chips" id="portchips" style="margin-bottom:10px"></div>
+    <details id="portsbox"><summary style="cursor:pointer;font-weight:600;font-size:15px">Limanlar <span id="portcount" class="mut" style="font-weight:400"></span> <span class="mut" style="font-weight:400">— açmak için tıklayın</span></summary>
+      <div class="chips" id="portchips" style="margin:10px 0"></div>
+    </details>
     <div class="row">
       <label>Yeni liman <input id="newport" placeholder="Liman / Ülke" style="width:280px"></label>
       <button id="addport" class="p">Ekle</button>
@@ -372,7 +372,8 @@ function compute(route){
 }
 
 /* ---------- yardımcılar ---------- */
-function portOptions(sel){return S.ports.map(p=>`<option ${p===sel?"selected":""}>${esc(p)}</option>`).join("")}
+const sortedPorts=()=>[...S.ports].sort((x,y)=>x.localeCompare(y,"tr"));
+function portOptions(sel){return sortedPorts().map(p=>`<option ${p===sel?"selected":""}>${esc(p)}</option>`).join("")}
 function autoVoy(route,i){
   for(let j=i-1;j>=0;j--){const v=route.stops[j]&&route.stops[j].voy;if(v)return v}
   const nm=route.name||"",vm=/^(.*?)(\d+)(\D*)$/.exec(nm);
@@ -426,7 +427,7 @@ function renderRoute(){
   const {rows}=compute(),st=S.route.stops,dk=doneIdx(S.route),tb=$("#chain");
   const nsel=st.filter(s=>s.sel).length;
   $("#chaininfo").textContent=`${Math.max(0,st.length-1)} bacak · ${rows.reduce((a,r)=>a+(r.nm||0),0)} nm · ${nsel?nsel+" liman seçili":"seçim yok (otomatik)"}`;
-  let h=`<thead><tr><th title="Maile ekle">✉</th><th>#</th><th>Voy</th><th>From</th><th>To</th><th>Distance</th><th>Speed</th><th>Voyage<br>Duration</th><th>ETA</th><th>Operation<br>Duration</th><th>ETD</th><th>Gönderildi</th><th></th></tr></thead><tbody>`;
+  let h=`<thead><tr><th title="Maile ekle">✉</th><th>#</th><th>Voy</th><th>From</th><th>To</th><th>Distance</th><th>Speed</th><th>Voyage<br>Duration</th><th>ETA</th><th>Operation<br>Duration</th><th>ETD</th><th></th></tr></thead><tbody>`;
   st.forEach((s,i)=>{
     const r=rows[i]||{},first=i===0;
     const lk=first?null:lookup(st[i-1].port,s.port);
@@ -445,8 +446,7 @@ function renderRoute(){
       <td>${first?'<span class="mut">-</span>':dt("eta",r.eta)}</td>
       <td>${first?"":`<input data-k="op" value="${hhmm(s.op||0)}" style="width:58px;text-align:center" title="ss:dd, örn. 24:00 veya 36:00">`}</td>
       <td>${dt("etd",r.etd)}</td>
-      <td>${s.sent?`<span class="sent" data-i="${i}" title="Kaldırmak için dokunun" style="color:var(--ok);cursor:pointer;white-space:nowrap">✓ ${esc(s.sent)}</span>`:""}</td>
-      <td style="white-space:nowrap"><button data-a="up" title="Yukarı">↑</button><button data-a="dn" title="Aşağı">↓</button><button data-a="rm" class="d" title="Sil">✕</button></td></tr>`;
+      <td><button data-a="rm" class="d" title="Satırı sil">✕</button></td></tr>`;
   });
   tb.innerHTML=h+"</tbody>";
   tb.querySelectorAll("tr[data-i]").forEach(tr=>{
@@ -460,7 +460,7 @@ function renderRoute(){
     }));
     tr.querySelectorAll("button[data-a]").forEach(b=>b.onclick=()=>{
       const a=b.dataset.a;
-      if(a==="rm"&&st.length>1)st.splice(i,1);
+      if(a==="rm"&&st.length>1){if(!confirm(`${i+1}. satır (${s.port}) silinsin mi?`))return;st.splice(i,1)}
       else if(a==="up"&&i>0)[st[i-1],st[i]]=[st[i],st[i-1]];
       else if(a==="dn"&&i<st.length-1)[st[i+1],st[i]]=[st[i],st[i+1]];
       persist();renderRoute();renderOut();
@@ -488,20 +488,17 @@ function renderOut(){
   const seen=new Set(),lines=[];
   idx.forEach(k=>{const r=rows[k];if(!r||seen.has(r.port))return;seen.add(r.port);
     const i=S.info[r.port]||{},ok=v=>v&&v!=="N/A"&&v!=="-";
-    const parts=[];
-    if(ok(i.jetty))parts.push("Jetty: "+i.jetty);
-    if(ok(i.draft))parts.push("Draft: "+i.draft);
-    if(ok(i.tug))parts.push("Römorkör: "+i.tug);
-    if(ok(i.day))parts.push("Gün ışığı: "+i.day);
-    if(ok(i.anch))parts.push("Demirleme: "+i.anch);
-    if(i.note)parts.push("⚠ "+i.note);
-    lines.push(`<div style="padding:5px 0;border-bottom:1px solid var(--line)"><b>${esc(r.port)}</b> <span class="mut">${gmtTxt(r.port)}</span><br><span style="font-size:13px">${parts.length?esc(parts.join(" · ")):'<span class="mut">Bilgi girilmemiş</span>'}</span></div>`);
+    const parts=IF.filter(([k])=>k!=="gmt"&&k!=="note"&&k!=="extra"&&i[k]!=null&&String(i[k]).trim()!=="")
+      .map(([k,l])=>`<span style="white-space:nowrap"><span class="mut">${esc(l)}:</span> ${esc(i[k])}</span>`);
+    const notes=["note","extra"].filter(k=>i[k]&&String(i[k]).trim()).map(k=>`<div style="color:var(--bad);margin-top:2px">⚠ ${esc(i[k])}</div>`).join("");
+    lines.push(`<div style="padding:6px 0;border-bottom:1px solid var(--line)"><b>${esc(r.port)}</b> <span class="mut">${gmtTxt(r.port)}</span><div style="font-size:13px;display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:2px">${parts.length?parts.join(""):'<span class="mut">Bilgi girilmemiş</span>'}</div>${notes}</div>`);
   });
   $("#pnotesbody").innerHTML=lines.join("");
 }
 
 /* ---------- çizim: liman/mesafe ---------- */
 function renderDist(){
+  $("#portcount").textContent=`(${S.ports.length} liman)`;
   $("#portchips").innerHTML=[...S.ports].sort((x,y)=>x.localeCompare(y,"tr")).map((p,i)=>`<span style="border:1px solid var(--line);border-radius:14px;padding:2px 4px 2px 10px">${esc(p)}
      <button data-p="${esc(p)}" class="d" style="border:0;padding:0 6px;background:none" title="Sil">✕</button></span>`).join("");
   $("#portchips").querySelectorAll("button").forEach(b=>b.onclick=()=>{
@@ -574,7 +571,7 @@ let curInfo=null;
 function renderInfo(){
   const sel=$("#ipt");
   if(!curInfo||!S.ports.includes(curInfo))curInfo=S.ports[0];
-  sel.innerHTML=S.ports.map(p=>`<option ${p===curInfo?"selected":""}>${esc(p)}</option>`).join("");
+  sel.innerHTML=sortedPorts().map(p=>`<option ${p===curInfo?"selected":""}>${esc(p)}</option>`).join("");
   const rec=S.info[curInfo]=S.info[curInfo]||{};
   $("#iform").innerHTML=IF.map(([k,l])=>{
     const wide=(k==="note"||k==="extra");
@@ -588,7 +585,7 @@ function renderInfo(){
 }
 function renderInfoTbl(){
   let h="<thead><tr><th>Liman</th><th>GMT</th><th>Jetty</th><th>Operasyon</th><th>Draft</th><th>Römorkör</th><th>Gün ışığı</th><th>Not</th></tr></thead><tbody>";
-  S.ports.forEach(p=>{const i=S.info[p]||{};
+  sortedPorts().forEach(p=>{const i=S.info[p]||{};
     h+=`<tr data-p="${esc(p)}" style="cursor:pointer;${p===curInfo?"background:var(--acc2)":""}"><td>${esc(p)}</td><td style="white-space:nowrap">${gmtTxt(p)}</td><td>${esc(i.jetty||"")}</td><td>${esc(i.op||"")}</td><td>${esc(i.draft||"")}</td><td>${esc(i.tug||"")}</td><td>${esc(i.day||"")}</td><td>${esc(i.note||"")}</td></tr>`});
   $("#itbl").innerHTML=h+"</tbody>";
   $("#itbl").querySelectorAll("tr[data-p]").forEach(tr=>tr.onclick=()=>{curInfo=tr.dataset.p;renderInfo();scrollTo(0,0)});
@@ -659,7 +656,7 @@ $("#copy").onclick=()=>{
   const sn=(S.route.name||"").trim();if(sn){S.saved[sn]=JSON.parse(JSON.stringify(S.route));fillSaved();persist()}
   const ok=copyHTML(mailHTML(compute().rows,S.route));
   if(ok){const d=new Date(),w=`${p2(d.getDate())}/${p2(d.getMonth()+1)} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
-    mailIdx(S.route).forEach(i=>{S.route.stops[i].sent=w});persist();renderRoute()}
+    }
   $("#copied").textContent=ok?"Kopyalandı — Outlook veya Excel'e yapıştırabilirsiniz.":"Kopyalanamadı; tabloyu elle seçip Ctrl+C yapın.";
 };
 $("#csv").onclick=()=>{

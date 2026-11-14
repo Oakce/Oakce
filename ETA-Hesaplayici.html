@@ -14,6 +14,8 @@ header h1{font-size:18px;margin:0;font-weight:600;flex:1}
 nav button{background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;padding:5px 12px;border-radius:6px;cursor:pointer;margin-left:4px}
 nav button.on{background:#fff;color:var(--acc)}
 main{max-width:1250px;margin:16px auto;padding:0 14px}
+main{max-width:none}
+#chain td,#chain th{padding:4px 5px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
 .card h2{margin:0 0 10px;font-size:15px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
@@ -66,6 +68,13 @@ td select{max-width:270px;width:100%}
       <label>Saat gösterimi
         <select id="tfmt"><option value="hm">15:00</option><option value="ap">EAM · AM · LAM · EPM · PM · LPM</option></select></label>
       <label style="flex-direction:row;align-items:center;gap:6px"><input id="showgmt" type="checkbox"> Mailde GMT yaz</label>
+    </div>
+    <div class="row" id="fsbox" style="margin-top:10px;align-items:center;border-top:1px solid var(--line);padding-top:10px">
+      <b style="font-size:13px">Kayıt dosyası:</b>
+      <button id="fsnew">📁 Yeni kayıt dosyası oluştur</button>
+      <button id="fsopen">📂 Kayıt dosyasını aç</button>
+      <button id="fsconn" class="p hide"></button>
+      <span id="fsstat" class="mut"></span>
     </div>
   </div>
 
@@ -425,7 +434,7 @@ function renderRoute(){
       <td class="mut">${i+1}</td>
       <td><input data-k="voy" value="${esc(s.voy||"")}" placeholder="${esc(autoVoy(S.route,i))}" style="width:70px"></td>
       <td style="white-space:nowrap">${first?'<span class="mut">çıkış</span>':esc(st[i-1].port)}</td>
-      <td style="white-space:nowrap"><select data-k="port" style="width:auto;min-width:210px;max-width:260px;font-weight:600">${portOptions(s.port)}</select> <span class="mut">${gmtTxt(s.port)}</span></td>
+      <td style="white-space:nowrap"><select data-k="port" style="width:auto;min-width:180px;max-width:240px;font-weight:600">${portOptions(s.port)}</select> <span class="mut">${gmtTxt(s.port)}</span></td>
       <td>${first?"":`<input type="number" min="0" data-k="nm" value="${s.nm??""}" placeholder="${lk?lk.nm:"?"}" style="width:62px${!lk&&(s.nm==null||s.nm==="")?";border-color:var(--bad)":""}">`}</td>
       <td>${first?"":`<input type="number" min="0" step="0.1" data-k="speed" value="${s.speed??""}" placeholder="${S.speed}" style="width:52px">`}</td>
       <td style="text-align:center">${first?"":hhmm(r.sea)}</td>
@@ -654,6 +663,40 @@ $("#import").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new Fil
   r.onload=()=>{try{const j=JSON.parse(r.result);if(!j.dist||!j.ports)throw 0;S=j;persist();location.reload()}catch(x){alert("Geçersiz dosya.")}};r.readAsText(f)};
 $("#reset").onclick=()=>{if(!confirm("Tüm liman, mesafe ve kayıtlı seferler varsayılana dönsün mü?"))return;S=defaults();persist();location.reload()};
 
+
+/* ---------- kayıt dosyası: seçilen .json dosyasına otomatik yazar ---------- */
+var FS={h:null,t:null,pending:null};
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("eta-fs",1);r.onupgradeneeded=()=>r.result.createObjectStore("k");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function idbGet(k){try{const db=await idb();return await new Promise(res=>{const q=db.transaction("k").objectStore("k").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(null)})}catch(e){return null}}
+async function idbSet(k,v){try{const db=await idb();await new Promise(res=>{const tx=db.transaction("k","readwrite");tx.objectStore("k").put(v,k);tx.oncomplete=res;tx.onerror=res})}catch(e){}}
+function fsStatus(m,warn){const e=$("#fsstat");e.textContent=m;e.style.color=warn?"var(--bad)":"var(--ok)"}
+async function fsWrite(){if(!FS.h)return;
+  try{const w=await FS.h.createWritable();await w.write(JSON.stringify(S,null,1));await w.close();
+    const d=new Date();fsStatus(`💾 ${FS.h.name} — otomatik kaydedildi ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`)}
+  catch(e){fsStatus("⚠ Dosyaya yazılamadı: "+e.message,true)}}
+function fsQueue(){if(!FS.h)return;clearTimeout(FS.t);FS.t=setTimeout(fsWrite,700)}
+const _persist0=persist;persist=function(){_persist0();fsQueue()};
+async function fsUse(h,isNew){
+  FS.h=h;FS.pending=null;await idbSet("h",h);$("#fsconn").classList.add("hide");
+  if(isNew){await fsWrite();return}
+  try{const txt=await (await h.getFile()).text();
+    if(txt.trim()){const j=JSON.parse(txt);if(j&&j.dist&&j.ports){S=j;migrate();syncInputs();fillSaved();renderRoute();renderOut();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}}
+    else await fsWrite();
+    fsStatus(`💾 ${h.name} — açıldı, her değişiklik otomatik kaydediliyor`);
+  }catch(e){fsStatus("⚠ Dosya okunamadı: "+e.message,true)}
+}
+const JTYPES=[{description:"ETA kayıt dosyası",accept:{"application/json":[".json"]}}];
+$("#fsnew").onclick=async()=>{try{const h=await showSaveFilePicker({suggestedName:"eta-kayit.json",types:JTYPES});await fsUse(h,true)}catch(e){}};
+$("#fsopen").onclick=async()=>{try{const [h]=await showOpenFilePicker({types:JTYPES});await fsUse(h,false)}catch(e){}};
+$("#fsconn").onclick=async()=>{const h=FS.pending;if(!h)return;try{if(await h.requestPermission({mode:"readwrite"})==="granted")await fsUse(h,false)}catch(e){fsStatus("⚠ "+e.message,true)}};
+(async()=>{
+  if(window.__ARTIFACT||!window.showSaveFilePicker){$("#fsbox").classList.add("hide");return}
+  const h=await idbGet("h");
+  if(!h){fsStatus("Seçilmedi — veriler şimdilik sadece bu tarayıcıda. Bir kayıt dosyası oluşturun.",true);return}
+  let perm="prompt";try{perm=await h.queryPermission({mode:"readwrite"})}catch(e){}
+  if(perm==="granted")await fsUse(h,false);
+  else{FS.pending=h;const b=$("#fsconn");b.textContent=`🔓 ${h.name} dosyasına bağlan`;b.classList.remove("hide");fsStatus("Kayıtları açmak için bir kez 'bağlan'a basın.",true)}
+})();
 fillSaved();fillHist();renderRoute();renderOut();
 </script>
 </body>

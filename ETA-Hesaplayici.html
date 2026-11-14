@@ -163,7 +163,7 @@ td select{max-width:270px;width:100%}
     </div>
     <table id="disttbl"><thead>
       <tr><th class="dsort" data-s="a" style="cursor:pointer">From <span></span></th><th class="dsort" data-s="b" style="cursor:pointer">To <span></span></th><th class="dsort" data-s="nm" style="cursor:pointer">nm <span></span></th><th title="Doğrulanmış (kesin) mesafe — kilitli">Kesin ✓</th><th></th></tr>
-      <tr><th><input id="dfa" placeholder="From filtresi…" style="width:100%;min-width:140px"></th><th><input id="dfb" placeholder="To filtresi…" style="width:100%;min-width:140px"></th><th></th><th><label style="flex-direction:row;align-items:center;gap:4px;white-space:nowrap"><input id="dfok" type="checkbox"> sadece kesin</label></th><th><button id="dfx" title="Filtreleri temizle">✕</button></th></tr>
+      <tr><th><input id="dfa" placeholder="Liman ara (From)…" style="width:100%;min-width:140px"></th><th></th><th></th><th><label style="flex-direction:row;align-items:center;gap:4px;white-space:nowrap"><input id="dfok" type="checkbox"> sadece kesin</label></th><th><button id="dfx" title="Filtreleri temizle">✕</button></th></tr>
     </thead><tbody></tbody></table>
     <p class="mut" id="dcount" style="margin:6px 0 0"></p>
   </div>
@@ -517,7 +517,7 @@ function renderDist(){
   const a=$("#da").value,b=$("#db").value;
   $("#da").innerHTML=opts;$("#db").innerHTML=opts;
   if(S.ports.includes(a))$("#da").value=a; if(S.ports.includes(b))$("#db").value=b;
-  const fa=$("#dfa").value.toLowerCase().trim(),fb=$("#dfb").value.toLowerCase().trim();
+  const fa=$("#dfa").value.toLowerCase().trim(),fb="";
   const so=S.dsort||{k:"a",dir:1};
   $("#disttbl").querySelectorAll(".dsort").forEach(th=>{th.querySelector("span").textContent=th.dataset.s===so.k?(so.dir>0?"▲":"▼"):"↕"});
   const m=(x,f)=>!f||x.toLowerCase().includes(f),list=[];
@@ -547,8 +547,8 @@ function renderDist(){
 }
 $("#disttbl").querySelectorAll(".dsort").forEach(th=>th.onclick=()=>{const k=th.dataset.s,so=S.dsort||{k:"a",dir:1};
   S.dsort=so.k===k?{k,dir:-so.dir}:{k,dir:1};persist();renderDist()});
-$("#dfa").oninput=renderDist;$("#dfb").oninput=renderDist;$("#dfok").onchange=renderDist;
-$("#dfx").onclick=()=>{$("#dfa").value="";$("#dfb").value="";$("#dfok").checked=false;renderDist()};
+$("#dfa").oninput=renderDist;$("#dfok").onchange=renderDist;
+$("#dfx").onclick=()=>{$("#dfa").value="";$("#dfok").checked=false;renderDist()};
 
 /* ---------- kayıtlı seferler ---------- */
 function fillHist(){

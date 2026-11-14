@@ -392,7 +392,7 @@ function mailIdx(route){
 function mailHTML(rows,route){
   const F="font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:14px;";
   const B="border:1px solid #b8c4d4;padding:7px 12px;";
-  const th=x=>`<th style="${F}${B}background:#0f3d6e;color:#ffffff;text-align:left;font-weight:bold;">${x}</th>`;
+  const th=x=>`<td bgcolor="#d6e4f5" style="${F}${B}background:#d6e4f5;color:#0f3d6e;text-align:left;font-weight:bold;border-bottom:2px solid #0f3d6e;"><b><span style="color:#0f3d6e">${x}</span></b></td>`;
   let m=`<table style="border-collapse:collapse;width:auto"><thead><tr>${th("VOY")}${th("PORT")}${th("ETA")}${th("ETD")}</tr></thead><tbody>`;
   mailIdx(route).forEach((i,k)=>{const r=rows[i];if(!r)return;
     const bg=k%2?"#f1f5fa":"#ffffff";
@@ -406,7 +406,7 @@ function mailHTML(rows,route){
 function legHTML(route,rows){
   const F="font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:14px;";
   const B="border:1px solid #b8c4d4;padding:5px 9px;";
-  const th=x=>`<th style="${F}${B}background:#0f3d6e;color:#ffffff;text-align:center;font-weight:bold;">${x}</th>`;
+  const th=x=>`<td bgcolor="#d6e4f5" style="${F}${B}background:#d6e4f5;color:#0f3d6e;text-align:center;font-weight:bold;border-bottom:2px solid #0f3d6e;"><b><span style="color:#0f3d6e">${x}</span></b></td>`;
   const dk=doneIdx(route);let m=`<table style="border-collapse:collapse;width:auto"><thead><tr>${["Distance","Speed","Voyage Duration","Voy","From","To","ETA","Operation Duration","ETD"].map(th).join("")}</tr></thead><tbody>`;
   for(let i=1;i<rows.length;i++){
     const r=rows[i],bg=i<=dk?"#ffff00":"#ffffff";

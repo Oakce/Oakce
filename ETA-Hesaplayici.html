@@ -96,7 +96,8 @@ td select{max-width:270px;width:100%}
       </span>
     </h2>
     <div id="msgs"></div>
-    <table id="out"></table>
+    <div id="outwrap" style="overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px"><table id="out" style="border-collapse:collapse;width:auto"></table></div>
+    <p class="mut" style="margin:6px 0 0">Aşağıdaki tablo mailde de aynen böyle görünür. Kopyala düğmesine basıp mailinize yapıştırın.</p>
     <details class="noprint" style="margin-top:12px"><summary class="mut" style="cursor:pointer">Detay (mesafe, seyir süresi, operasyon)</summary><table id="detail"></table></details>
     <p class="mut" id="copied"></p>
   </div>
@@ -289,9 +290,14 @@ function renderOut(){
   $("#msgs").innerHTML=msgs.map(m=>`<div class="warn">${esc(m)}</div>`).join("");
   const vm=/^(.*?)(\d+)(\D*)$/.exec(S.route.name||"");
   const voy=i=>vm?(i===0?vm[1]+(+vm[2]-1)+vm[3]:S.route.name):(S.route.name||"");
-  let m=`<thead><tr><th>VOY</th><th>PORT</th><th>ETA</th><th>ETD</th></tr></thead><tbody>`;
+  const F="font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:14px;";
+  const B="border:1px solid #b8c4d4;padding:7px 12px;";
+  const th=x=>`<th style="${F}${B}background:#0f3d6e;color:#ffffff;text-align:left;font-weight:bold;">${x}</th>`;
+  let m=`<thead><tr>${th("VOY")}${th("PORT")}${th("ETA")}${th("ETD")}</tr></thead><tbody>`;
   rows.forEach((r,i)=>{
-    m+=`<tr><td>${esc(voy(i))}</td><td>${esc(r.port)}</td><td class="eta">${i===0?"-":fmt(r.eta)}</td><td class="etd">${fmt(r.etd)}</td></tr>`;
+    const bg=i%2?"#f1f5fa":"#ffffff";
+    const td=(x,ex="")=>`<td style="${F}${B}background:${bg};color:#111827;${ex}">${x}</td>`;
+    m+=`<tr>${td(esc(voy(i)),"white-space:nowrap;")}${td(esc(r.port))}${td(i===0?"-":fmt(r.eta),"font-weight:bold;white-space:nowrap;"+(i===0?"text-align:center;":""))}${td(fmt(r.etd),"font-weight:bold;white-space:nowrap;")}</tr>`;
   });
   $("#out").innerHTML=m+"</tbody>";
   let h=`<thead><tr><th>#</th><th>PORT</th><th>Mesafe (nm)</th><th>Seyir süresi</th><th>ETA</th><th>Operasyon</th><th>ETD</th></tr></thead><tbody>`;

@@ -45,6 +45,7 @@ td select{max-width:270px;width:100%}
   <nav>
     <button id="t-calc" class="on">Hesapla</button>
     <button id="t-dist">Limanlar &amp; Mesafeler</button>
+    <button id="t-info">Liman Bilgileri</button>
   </nav>
 </header>
 <main>
@@ -68,6 +69,7 @@ td select{max-width:270px;width:100%}
       <label>Hız (knot) <input id="speed" type="number" step="0.1" min="0.1" style="width:80px"></label>
       <label>Saat gösterimi
         <select id="tfmt"><option value="hm">15:00</option><option value="ap">AM / PM</option></select></label>
+      <label style="flex-direction:row;align-items:center;gap:6px"><input id="showgmt" type="checkbox"> Mailde GMT yaz</label>
     </div>
   </div>
 
@@ -98,12 +100,28 @@ td select{max-width:270px;width:100%}
     <div id="msgs"></div>
     <div id="outwrap" style="overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px"><table id="out" style="border-collapse:collapse;width:auto"></table></div>
     <p class="mut" style="margin:6px 0 0">Aşağıdaki tablo mailde de aynen böyle görünür. Kopyala düğmesine basıp mailinize yapıştırın.</p>
+    <details class="noprint" id="pnotes" style="margin-top:12px" open><summary class="mut" style="cursor:pointer">Rotadaki limanların notları</summary><div id="pnotesbody" style="margin-top:6px"></div></details>
     <details class="noprint" style="margin-top:12px"><summary class="mut" style="cursor:pointer">Detay (mesafe, seyir süresi, operasyon)</summary><table id="detail"></table></details>
     <p class="mut" id="copied"></p>
   </div>
 </section>
 
 <!-- ============ LİMANLAR ============ -->
+<section id="v-info" class="hide">
+  <div class="card">
+    <h2>Liman bilgisi</h2>
+    <div class="row" style="margin-bottom:12px">
+      <label>Liman <select id="ipt" style="min-width:300px"></select></label>
+      <span class="mut" style="max-width:520px">GMT farkı hesapta kullanılır: her liman kendi yerel saatinde (LT) gösterilir, limanlar arası saat farkı otomatik eklenir. Nassau, Haiti, Bermuda gibi yaz saati uygulayan limanlarda mevsime göre elle değiştirin.</span>
+    </div>
+    <div id="iform" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px"></div>
+  </div>
+  <div class="card">
+    <h2>Tüm limanlar <span class="mut">— satıra basınca açılır</span></h2>
+    <div style="overflow-x:auto"><table id="itbl"></table></div>
+  </div>
+</section>
+
 <section id="v-dist" class="hide">
   <div class="card">
     <h2>Limanlar</h2>
@@ -181,6 +199,54 @@ const DEFAULT_ROUTE = {
     {port:"Lime Tree Bay / St Croix", op:24}
   ]
 };
+
+/* ---------- liman bilgileri (Caribbean Follow Up listesinden) ---------- */
+const IF=[["gmt","GMT farkı (saat)"],["country","Ülke"],["jetty","Jetty / yanaşma yeri"],["op","Operasyon"],["draft","Draft kısıtı"],["anch","Demirleme (Anchorage)"],["tug","Römorkör"],["day","Gün ışığı kısıtı"],["bunk","Bunkering"],["slop","Slop"],["hose","Hortum bağlantısı"],["garb","Çöp"],["prov","Provizyon"],["crew","Crew change"],["bunkLO","Bunker & LO sample"],["sludge","Sludge"],["fw","FW (tatlı su)"],["note","Özel not"],["extra","Ek notlar"]];
+const SC="By Ship crew";
+/* sıra: port, gmt, ülke, jetty, op, draft, anch, tug, day, bunk, slop, hose, çöp, not */
+const INFO_ROWS=[
+["Lime Tree Bay / St Croix",-4,"U.S. Virgin Islands","2 & 5 & DC","Loading","N/A","Only Drift","2 (Compulsory)","No","MGO","To Shore",SC,"1 cbm 350 usd","CBP attend onboard. Face control. Provision store and garbage control"],
+["Buckeye Terminal Cul De Sac / St. Lucia",-4,"St Lucia","Buckeye","Loading","N/A","YES","1 (Compulsory)","No","MGO","N/A",SC,"5 cbm 850 usd","Attention to swell"],
+["Rio Haina / Dominican Republic",-4,"Dominican Republic","West 2 & 3","Discharging","N/A","Only Drift","2 (Compulsory)","No","N/A","To Truck",SC,"1500 usd (ask to agent)","Charterer representative stay on board during all operation"],
+["Cole Bay / St Maarten",-4,"St Maarten","Cole Bay MBM","Discharging","7,0 m","YES","-","Yes (For berthing)","N/A","N/A",SC,"N/A","Terminal or surveyor not come onboard"],
+["St Eustatius / Netherland Antilles",-4,"Netherland Antilles","Anchorage","Bunkering","N/A","YES","-","NO","VLSFO & MGO","N/A",SC,"N/A","Attention to swell"],
+["Fort Pine / St Kitts",-4,"St Kitts & Nevis","MBM","Discharging","5.5","YES","-","Yes (For berthing)","N/A","N/A",SC,"N/A",""],
+["St John / Antigua (Sea Island MBM)",-4,"Antigua","Sea Island MBM","Disch/Loading","7,90 m","YES","2 (Compulsory)","YES","N/A","N/A",SC,"N/A",""],
+["St John / Antigua (Sea Island Jetty)",-4,"Antigua","Sea Island Jetty","Disch/Loading","10 m","YES","1 (Compulsory)","YES","N/A","N/A","By Shore","N/A",""],
+["Nassau / Bahamas",-5,"Bahamas","Clifton MBM","Discharging","N/A","Only Drift","1 (Compulsory)","YES","N/A","N/A",SC,"N/A","Free boat service to shore"],
+["Suhoza / Suriname",-3,"Suriname","Suhoza","Discharging","5,7 m (FW)","YES","NIL","Tide restriction","","N/A",SC,"N/A","HIGH TIDE ENTRANCE"],
+["Beekhuizen - Gow2 / Suriname",-3,"Suriname","Beekhuizen","Discharging","5,7 m (FW)","YES","NIL","Tide restriction","N/A","N/A",SC,"6 CBM 160 USD","HIGH TIDE ENTRANCE"],
+["Greathead Bay / St. Vincent",-4,"St Vincent","MBM","Discharging","6,8 m","YES","-","Yes (For berthing)","N/A","N/A",SC,"N/A","Terminal or surveyor not come onboard"],
+["Lisas Point / Trinidad",-4,"Trinidad","Anchorage","Bunkering","N/A","YES","1 (Compulsory)","NO","VLSFO & MGO","To Barge",SC,"N/A",""],
+["Fort de France / Martinique",-4,"Martinique","","Discharging","6.5 m","YES","","","VLSFO & MGO","",SC,"","Free boat service to shore"],
+["St George / Bermuda",-4,"Bermuda","","Discharging","","YES","","","N/A","N/A",SC,"N/A",""],
+["Rome / Guyana",-4,"Guyana","Rome Depot","Discharging","5.5 m","YES","NIL","Tide restriction","","N/A",SC,"Ask to mooring man",""],
+["Port Au Prince / Haiti",-5,"Haiti","Varreux terminal","Discharging","9.5 m","Not recommended","1 (Compulsory)","Yes","N/A","N/A",SC,"1-5 cbm 600 usd + fee","Marsec lvl 2 / At night time vessel should 40-50 nm await from pilot station"],
+["Bridgetown / Barbados",-4,"Barbados","Sol Terminal","Discharging","N/A","Yes","1 (Compulsory)","No","N/A","N/A",SC,"UNK",""]
+];
+const GMT_ONLY={"Grenlec Queens Park / Grenade":-4,"Vieux Fort / St Lucia":-4,"Vinlec / St. Vincent":-4,"WIOC -DNPC - Jimmit Bay":-4,"Trinidad":-4};
+function defaultInfo(){
+  const o={};
+  INFO_ROWS.forEach(r=>{const k=["gmt","country","jetty","op","draft","anch","tug","day","bunk","slop","hose","garb","note"];
+    const rec={};k.forEach((f,i)=>rec[f]=r[i+1]);o[r[0]]=rec});
+  Object.keys(GMT_ONLY).forEach(n=>{o[n]={gmt:GMT_ONLY[n]}});
+  return o;
+}
+/* eski kayıtlara yeni limanları / GMT'yi ekler, kullanıcının girdiklerini bozmaz */
+function migrate(){
+  S.history=S.history||[];
+  S.info=S.info||{};
+  const di=defaultInfo();
+  Object.keys(di).forEach(n=>{
+    if(!S.ports.includes(n))S.ports.push(n);
+    if(!S.info[n])S.info[n]=di[n];
+    else Object.keys(di[n]).forEach(f=>{if(S.info[n][f]==null)S.info[n][f]=di[n][f]});
+  });
+  S.ports.forEach(n=>{S.info[n]=S.info[n]||{};if(S.info[n].gmt==null)S.info[n].gmt=-4});
+  if(S.showGmt==null)S.showGmt=false;
+}
+const gmtOf=n=>{const g=S.info&&S.info[n]&&S.info[n].gmt;return g==null||g===""||isNaN(+g)?-4:+g};
+const gmtTxt=n=>{const g=gmtOf(n);return "GMT"+(g>=0?"+":"-")+Math.abs(g)};
 const KEY="eta-calc-v1";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -194,7 +260,7 @@ function defaults(){
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
 if(!S||!S.dist)S=defaults();
-S.history=S.history||[];
+migrate();
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
 /* ---------- mesafe ---------- */
@@ -209,12 +275,13 @@ const MS=36e5;
 function parseDT(s){ if(!s)return null; const m=/^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/.exec(s); if(!m)return null;
   return Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]); }
 const p2=n=>String(n).padStart(2,"0");
-function fmt(ms){
+function fmt(ms,port){
   if(ms==null||isNaN(ms))return "-";
   const d=new Date(ms), D=`${p2(d.getUTCDate())}/${p2(d.getUTCMonth()+1)}/${d.getUTCFullYear()}`;
   const h=d.getUTCHours(), m=d.getUTCMinutes();
-  if(S.tfmt==="ap") return `${D} ${h<12?"AM":"PM"} iagw and wp`;
-  return `${D} ${p2(h)}:${p2(m)} LT iagw and wp`;
+  const g=S.showGmt&&port?` (${gmtTxt(port)})`:"";
+  if(S.tfmt==="ap") return `${D} ${h<12?"AM":"PM"}${g} iagw and wp`;
+  return `${D} ${p2(h)}:${p2(m)} LT${g} iagw and wp`;
 }
 function dur(h){ if(h==null)return "-"; const t=Math.round(h*60), d=Math.floor(t/1440), hh=Math.floor(t%1440/60), mm=t%60;
   return (d?d+"g ":"")+`${hh}s ${p2(mm)}dk`; }
@@ -223,7 +290,7 @@ function dur(h){ if(h==null)return "-"; const t=Math.round(h*60), d=Math.floor(t
 function compute(){
   const st=S.route.stops, rows=[], msgs=[]; let prevETD=null;
   st.forEach((s,i)=>{
-    const r={port:s.port,nm:null,speed:null,sea:null,eta:null,op:s.op||0,etd:null};
+    const r={port:s.port,gmt:gmtOf(s.port),nm:null,speed:null,sea:null,eta:null,op:s.op||0,etd:null};
     if(i===0){
       r.etd=parseDT(s.etd);
       if(r.etd==null) msgs.push("1. satır için ETD (başlangıç) girin.");
@@ -237,7 +304,8 @@ function compute(){
       r.nm=nm; r.speed=sp;
       r.sea=nm!=null?nm/sp:null;
       const fe=parseDT(s.eta);
-      r.eta=fe!=null?fe:(prevETD!=null&&r.sea!=null?prevETD+r.sea*MS:null);
+      const tz=(gmtOf(s.port)-gmtOf(st[i-1].port))*MS; r.gmt=gmtOf(s.port);
+      r.eta=fe!=null?fe:(prevETD!=null&&r.sea!=null?prevETD+r.sea*MS+tz:null);
       const fd=parseDT(s.etd);
       r.etd=fd!=null?fd:(r.eta!=null?r.eta+r.op*MS:null);
     }
@@ -254,7 +322,7 @@ function renderRoute(){
     const tr=document.createElement("tr");
     const first=i===0;
     tr.innerHTML=`<td>${i+1}</td>
-      <td><select data-k="port">${portOptions(s.port)}</select></td>
+      <td><select data-k="port">${portOptions(s.port)}</select> <span class="mut">${gmtTxt(s.port)}</span></td>
       <td>${first?'<span class="mut">—</span>':`<input type="number" min="0" data-k="opd" value="${Math.floor((s.op||0)/24)}" title="gün"> g
         <input type="number" min="0" max="23" step="0.5" data-k="oph" value="${(s.op||0)%24}" title="saat"> s`}</td>
       <td>${first?'<span class="mut">—</span>':`<input type="number" min="0" data-k="nm" value="${s.nm??""}" style="width:80px">`}</td>
@@ -269,7 +337,8 @@ function renderRoute(){
         const d=+tr.querySelector('[data-k=opd]').value||0,h=+tr.querySelector('[data-k=oph]').value||0;
         s.op=d*24+h;
       }else s[k]=el.value;
-      if(k==="port"){renderOut();} else renderOut();
+      if(k==="port"){const sp=tr.querySelector("td:nth-child(2) .mut");if(sp)sp.textContent=gmtTxt(el.value)}
+      renderOut();
       persist();
     }));
     tr.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
@@ -297,15 +366,28 @@ function renderOut(){
   rows.forEach((r,i)=>{
     const bg=i%2?"#f1f5fa":"#ffffff";
     const td=(x,ex="")=>`<td style="${F}${B}background:${bg};color:#111827;${ex}">${x}</td>`;
-    m+=`<tr>${td(esc(voy(i)),"white-space:nowrap;")}${td(esc(r.port))}${td(i===0?"-":fmt(r.eta),"font-weight:bold;white-space:nowrap;"+(i===0?"text-align:center;":""))}${td(fmt(r.etd),"font-weight:bold;white-space:nowrap;")}</tr>`;
+    m+=`<tr>${td(esc(voy(i)),"white-space:nowrap;")}${td(esc(r.port))}${td(i===0?"-":fmt(r.eta,r.port),"font-weight:bold;white-space:nowrap;"+(i===0?"text-align:center;":""))}${td(fmt(r.etd,r.port),"font-weight:bold;white-space:nowrap;")}</tr>`;
   });
   $("#out").innerHTML=m+"</tbody>";
-  let h=`<thead><tr><th>#</th><th>PORT</th><th>Mesafe (nm)</th><th>Seyir süresi</th><th>ETA</th><th>Operasyon</th><th>ETD</th></tr></thead><tbody>`;
+  let h=`<thead><tr><th>#</th><th>PORT</th><th>GMT</th><th>Mesafe (nm)</th><th>Seyir süresi</th><th>ETA</th><th>Operasyon</th><th>ETD</th></tr></thead><tbody>`;
   rows.forEach((r,i)=>{
-    h+=`<tr><td>${i+1}</td><td>${esc(r.port)}</td><td>${r.nm??"-"}</td><td>${dur(r.sea)}</td>
+    h+=`<tr><td>${i+1}</td><td>${esc(r.port)}</td><td>${gmtTxt(r.port)}</td><td>${r.nm??"-"}</td><td>${dur(r.sea)}</td>
         <td>${i===0?"-":fmt(r.eta)}</td><td>${i===0?"-":dur(r.op)}</td><td>${fmt(r.etd)}</td></tr>`;
   });
   $("#detail").innerHTML=h+"</tbody>";
+  const seen=new Set(),lines=[];
+  rows.forEach(r=>{ if(seen.has(r.port))return;seen.add(r.port);
+    const i=S.info[r.port]||{},ok=v=>v&&v!=="N/A"&&v!=="-";
+    const parts=[];
+    if(ok(i.jetty))parts.push("Jetty: "+i.jetty);
+    if(ok(i.draft))parts.push("Draft: "+i.draft);
+    if(ok(i.tug))parts.push("Römorkör: "+i.tug);
+    if(ok(i.day))parts.push("Gün ışığı: "+i.day);
+    if(ok(i.anch))parts.push("Demirleme: "+i.anch);
+    if(i.note)parts.push("⚠ "+i.note);
+    lines.push(`<div style="padding:5px 0;border-bottom:1px solid var(--line)"><b>${esc(r.port)}</b> <span class="mut">${gmtTxt(r.port)}</span><br><span style="font-size:13px">${parts.length?esc(parts.join(" · ")):'<span class="mut">Bilgi girilmemiş</span>'}</span></div>`);
+  });
+  $("#pnotesbody").innerHTML=lines.join("");
 }
 
 /* ---------- çizim: liman/mesafe ---------- */
@@ -356,8 +438,38 @@ function fillSaved(){
 }
 
 /* ---------- olaylar ---------- */
-$("#t-calc").onclick=()=>{$("#v-calc").classList.remove("hide");$("#v-dist").classList.add("hide");$("#t-calc").classList.add("on");$("#t-dist").classList.remove("on");renderRoute();renderOut()};
-$("#t-dist").onclick=()=>{$("#v-dist").classList.remove("hide");$("#v-calc").classList.add("hide");$("#t-dist").classList.add("on");$("#t-calc").classList.remove("on");renderDist()};
+function showTab(n){
+  ["calc","dist","info"].forEach(x=>{$("#v-"+x).classList.toggle("hide",x!==n);$("#t-"+x).classList.toggle("on",x===n)});
+  if(n==="calc"){renderRoute();renderOut()} if(n==="dist")renderDist(); if(n==="info")renderInfo();
+}
+$("#t-calc").onclick=()=>showTab("calc");$("#t-dist").onclick=()=>showTab("dist");$("#t-info").onclick=()=>showTab("info");
+$("#showgmt").checked=!!S.showGmt;
+$("#showgmt").onchange=e=>{S.showGmt=e.target.checked;persist();renderOut()};
+/* ---------- liman bilgisi sekmesi ---------- */
+let curInfo=null;
+function renderInfo(){
+  const sel=$("#ipt");
+  if(!curInfo||!S.ports.includes(curInfo))curInfo=S.ports[0];
+  sel.innerHTML=S.ports.map(p=>`<option ${p===curInfo?"selected":""}>${esc(p)}</option>`).join("");
+  const rec=S.info[curInfo]=S.info[curInfo]||{};
+  $("#iform").innerHTML=IF.map(([k,l])=>{
+    const wide=(k==="note"||k==="extra");
+    const inp=k==="gmt"?`<input type="number" step="0.5" min="-12" max="14" data-f="${k}" value="${rec[k]??-4}">`
+      :wide?`<textarea data-f="${k}" rows="3" style="padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit">${esc(rec[k]||"")}</textarea>`
+      :`<input data-f="${k}" value="${esc(rec[k]||"")}">`;
+    return `<label style="${wide?"grid-column:1/-1":""}">${l}${inp}</label>`}).join("");
+  $("#iform").querySelectorAll("[data-f]").forEach(el=>el.addEventListener("input",()=>{
+    S.info[curInfo][el.dataset.f]=el.dataset.f==="gmt"?(el.value===""?"":+el.value):el.value;persist();renderInfoTbl()}));
+  renderInfoTbl();
+}
+function renderInfoTbl(){
+  let h="<thead><tr><th>Liman</th><th>GMT</th><th>Jetty</th><th>Operasyon</th><th>Draft</th><th>Römorkör</th><th>Gün ışığı</th><th>Not</th></tr></thead><tbody>";
+  S.ports.forEach(p=>{const i=S.info[p]||{};
+    h+=`<tr data-p="${esc(p)}" style="cursor:pointer;${p===curInfo?"background:var(--acc2)":""}"><td>${esc(p)}</td><td style="white-space:nowrap">${gmtTxt(p)}</td><td>${esc(i.jetty||"")}</td><td>${esc(i.op||"")}</td><td>${esc(i.draft||"")}</td><td>${esc(i.tug||"")}</td><td>${esc(i.day||"")}</td><td>${esc(i.note||"")}</td></tr>`});
+  $("#itbl").innerHTML=h+"</tbody>";
+  $("#itbl").querySelectorAll("tr[data-p]").forEach(tr=>tr.onclick=()=>{curInfo=tr.dataset.p;renderInfo();scrollTo(0,0)});
+}
+$("#ipt").onchange=e=>{curInfo=e.target.value;renderInfo()};
 $("#speed").value=S.speed; $("#tfmt").value=S.tfmt; $("#rname").value=S.route.name||"";
 $("#speed").oninput=e=>{S.speed=+e.target.value||11;persist();renderOut()};
 $("#tfmt").onchange=e=>{S.tfmt=e.target.value;persist();renderOut()};

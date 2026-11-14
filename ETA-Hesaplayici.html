@@ -16,6 +16,7 @@ nav button.on{background:#fff;color:var(--acc)}
 main{max-width:1250px;margin:16px auto;padding:0 14px}
 main{max-width:none}
 #chain td,#chain th{padding:4px 5px}
+button:disabled{opacity:.35;cursor:not-allowed}
 #chain tr.vchg>td{border-top:3px solid var(--acc)!important}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
 .card h2{margin:0 0 10px;font-size:15px}
@@ -142,12 +143,13 @@ td select{max-width:270px;width:100%}
 
 <section id="v-dist" class="hide">
   <div class="card">
-    <details id="portsbox"><summary style="cursor:pointer;font-weight:600;font-size:15px">Limanlar <span id="portcount" class="mut" style="font-weight:400"></span> <span class="mut" style="font-weight:400">— açmak için tıklayın</span></summary>
-      <div class="chips" id="portchips" style="margin:10px 0"></div>
-    </details>
-    <div class="row">
-      <label>Yeni liman <input id="newport" placeholder="Liman / Ülke" style="width:280px"></label>
-      <button id="addport" class="p">Ekle</button>
+    <h2>Limanlar <span id="portcount" class="mut" style="font-weight:400"></span></h2>
+    <div id="portsbox" style="max-width:560px;border:1px solid var(--line);border-radius:8px;overflow:hidden">
+      <div style="display:flex;gap:6px;padding:8px;background:var(--acc2);border-bottom:1px solid var(--line)">
+        <input id="newport" placeholder="Yeni liman ekle: Liman / Ülke" style="flex:1;min-width:0">
+        <button id="addport" class="p">Ekle</button>
+      </div>
+      <div id="portchips" style="max-height:360px;overflow-y:auto"></div>
     </div>
   </div>
   <div class="card">
@@ -159,8 +161,8 @@ td select{max-width:270px;width:100%}
       <button id="adddist" class="p">Ekle / Güncelle</button>
     </div>
     <table id="disttbl"><thead>
-      <tr><th class="dsort" data-s="a" style="cursor:pointer">From <span></span></th><th class="dsort" data-s="b" style="cursor:pointer">To <span></span></th><th class="dsort" data-s="nm" style="cursor:pointer">nm <span></span></th><th></th></tr>
-      <tr><th><input id="dfa" placeholder="From filtresi…" style="width:100%;min-width:140px"></th><th><input id="dfb" placeholder="To filtresi…" style="width:100%;min-width:140px"></th><th></th><th><button id="dfx" title="Filtreleri temizle">✕</button></th></tr>
+      <tr><th class="dsort" data-s="a" style="cursor:pointer">From <span></span></th><th class="dsort" data-s="b" style="cursor:pointer">To <span></span></th><th class="dsort" data-s="nm" style="cursor:pointer">nm <span></span></th><th title="Doğrulanmış (kesin) mesafe — kilitli">Kesin ✓</th><th></th></tr>
+      <tr><th><input id="dfa" placeholder="From filtresi…" style="width:100%;min-width:140px"></th><th><input id="dfb" placeholder="To filtresi…" style="width:100%;min-width:140px"></th><th></th><th><label style="flex-direction:row;align-items:center;gap:4px;white-space:nowrap"><input id="dfok" type="checkbox"> sadece kesin</label></th><th><button id="dfx" title="Filtreleri temizle">✕</button></th></tr>
     </thead><tbody></tbody></table>
     <p class="mut" id="dcount" style="margin:6px 0 0"></p>
   </div>
@@ -281,7 +283,9 @@ const PORTOLA_CHAIN={name:"PORTOLA",vessel:"M/T PORTOLA",stops:[
  {port:"Beekhuizen - Gow2 / Suriname",op:24,voy:"Voy 77"},
  {port:"Trinidad",op:24,voy:"Voy 77"},
  {port:"Lime Tree Bay / St Croix",op:24,voy:"Voy 77"}]};
+const KESIN_IDX=[0,1,2,4,5,6,7,8,9,12,13,14,16,19,20];
 function migrate(){
+  if(!S.kesinSeed){KESIN_IDX.forEach(k=>{const [a,b,nm]=DEFAULT_DIST[k];const d=S.dist.find(x=>x.a===a&&x.b===b);if(d&&d.nm===nm&&d.ok==null)d.ok=true});S.kesinSeed=true}
   if(!S.seed3){ /* bir kez: mevcut rotayı kaydet, PORTOLA zincirini aç */
     S.saved=S.saved||{};
     const cn=(S.route&&S.route.name||"").trim();
@@ -321,8 +325,8 @@ function persist(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
 /* ---------- mesafe ---------- */
 function lookup(a,b){
-  const f=S.dist.find(d=>d.a===a&&d.b===b); if(f)return {nm:f.nm,rev:false};
-  const r=S.dist.find(d=>d.a===b&&d.b===a); if(r)return {nm:r.nm,rev:true};
+  const f=S.dist.find(d=>d.a===a&&d.b===b); if(f)return {nm:f.nm,rev:false,ok:!!f.ok};
+  const r=S.dist.find(d=>d.a===b&&d.b===a); if(r)return {nm:r.nm,rev:true,ok:!!r.ok};
   return null;
 }
 
@@ -440,7 +444,7 @@ function renderRoute(){
       <td><input data-k="voy" value="${esc(s.voy||"")}" placeholder="${esc(autoVoy(S.route,i))}" style="width:70px"></td>
       <td style="white-space:nowrap">${first?'<span class="mut">çıkış</span>':esc(st[i-1].port)}</td>
       <td style="white-space:nowrap"><select data-k="port" style="width:auto;min-width:180px;max-width:240px;font-weight:600">${portOptions(s.port)}</select> <span class="mut">${gmtTxt(s.port)}</span></td>
-      <td>${first?"":`<input type="number" min="0" data-k="nm" value="${s.nm??""}" placeholder="${lk?lk.nm:"?"}" style="width:62px${!lk&&(s.nm==null||s.nm==="")?";border-color:var(--bad)":""}">`}</td>
+      <td>${first?"":`<input type="number" min="0" data-k="nm" value="${s.nm??""}" placeholder="${lk?lk.nm:"?"}" style="width:62px${!lk&&(s.nm==null||s.nm==="")?";border-color:var(--bad)":""}">${lk&&lk.ok&&(s.nm==null||s.nm==="")?'<span title="Kesin (doğrulanmış) mesafe" style="color:var(--ok);font-weight:700"> ✓</span>':""}`}</td>
       <td>${first?"":`<input type="number" min="0" step="0.1" data-k="speed" value="${s.speed??""}" placeholder="${S.speed}" style="width:52px">`}</td>
       <td style="text-align:center">${first?"":hhmm(r.sea)}</td>
       <td>${first?'<span class="mut">-</span>':dt("eta",r.eta)}</td>
@@ -499,8 +503,8 @@ function renderOut(){
 /* ---------- çizim: liman/mesafe ---------- */
 function renderDist(){
   $("#portcount").textContent=`(${S.ports.length} liman)`;
-  $("#portchips").innerHTML=[...S.ports].sort((x,y)=>x.localeCompare(y,"tr")).map((p,i)=>`<span style="border:1px solid var(--line);border-radius:14px;padding:2px 4px 2px 10px">${esc(p)}
-     <button data-p="${esc(p)}" class="d" style="border:0;padding:0 6px;background:none" title="Sil">✕</button></span>`).join("");
+  $("#portchips").innerHTML=[...S.ports].sort((x,y)=>x.localeCompare(y,"tr")).map((p,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 10px;border-bottom:1px solid var(--line);${p===window._newPort?"background:var(--done)":""}">
+     <span>${esc(p)}</span><button data-p="${esc(p)}" class="d" style="border:0;padding:0 6px;background:none" title="Sil">✕</button></div>`).join("");
   $("#portchips").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     const p=b.dataset.p;
     if(!confirm(`"${p}" ve bu limanın tüm mesafeleri silinsin mi?`))return;
@@ -516,7 +520,9 @@ function renderDist(){
   const so=S.dsort||{k:"a",dir:1};
   $("#disttbl").querySelectorAll(".dsort").forEach(th=>{th.querySelector("span").textContent=th.dataset.s===so.k?(so.dir>0?"▲":"▼"):"↕"});
   const m=(x,f)=>!f||x.toLowerCase().includes(f),list=[];
+  const onlyOk=$("#dfok").checked;
   S.dist.forEach((d,i)=>{
+    if(onlyOk&&!d.ok)return;
     if(m(d.a,fa)&&m(d.b,fb))list.push({d:{a:d.a,b:d.b,nm:d.nm},src:d,i,rev:false});
     else if((fa||fb)&&m(d.b,fa)&&m(d.a,fb))list.push({d:{a:d.b,b:d.a,nm:d.nm},src:d,i,rev:true});
   });
@@ -527,17 +533,21 @@ function renderDist(){
   list.forEach(({d,src,i,rev})=>{
     const tr=document.createElement("tr");
     tr.innerHTML=`<td>${esc(d.a)}</td><td>${esc(d.b)}${rev?' <span class="mut" title="Ters yönde kayıtlı, aynı mesafe">↔</span>':""}</td>
-      <td><input type="number" min="0" value="${d.nm}" style="width:80px"></td>
-      <td><button class="d">Sil</button></td>`;
-    tr.querySelector("input").onchange=e=>{src.nm=+e.target.value;persist();renderOut()};
-    tr.querySelector("button").onclick=()=>{S.dist.splice(i,1);persist();renderDist();renderOut()};
+      <td><input type="number" min="0" value="${d.nm}" style="width:80px${src.ok?";background:var(--acc2);font-weight:700;color:var(--ok)":""}" ${src.ok?"disabled title='Kesin mesafe — değiştirmek için önce Kesin ✓ işaretini kaldırın'":""}></td>
+      <td><label style="flex-direction:row;align-items:center;gap:4px;color:var(--ok);font-weight:600"><input type="checkbox" class="okbox" ${src.ok?"checked":""}> ${src.ok?"Kesin":""}</label></td>
+      <td><button class="d" ${src.ok?"disabled title='Kesin mesafe silinemez'":""}>Sil</button></td>`;
+    if(src.ok)tr.style.background="rgba(6,118,71,.07)";
+    tr.querySelector("input[type=number]").onchange=e=>{if(src.ok)return;src.nm=+e.target.value;persist();renderOut()};
+    tr.querySelector(".okbox").onchange=e=>{if(!e.target.checked&&!confirm(`${d.a} ↔ ${d.b} (${src.nm} nm) kesin işareti kaldırılsın mı? Mesafe tekrar değiştirilebilir olur.`)){e.target.checked=true;return}
+      src.ok=e.target.checked;if(!src.ok)delete src.ok;persist();renderDist();renderRoute()};
+    tr.querySelector("button").onclick=()=>{if(src.ok)return;S.dist.splice(i,1);persist();renderDist();renderOut()};
     tb.appendChild(tr);
   });
 }
 $("#disttbl").querySelectorAll(".dsort").forEach(th=>th.onclick=()=>{const k=th.dataset.s,so=S.dsort||{k:"a",dir:1};
   S.dsort=so.k===k?{k,dir:-so.dir}:{k,dir:1};persist();renderDist()});
-$("#dfa").oninput=renderDist;$("#dfb").oninput=renderDist;
-$("#dfx").onclick=()=>{$("#dfa").value="";$("#dfb").value="";renderDist()};
+$("#dfa").oninput=renderDist;$("#dfb").oninput=renderDist;$("#dfok").onchange=renderDist;
+$("#dfx").onclick=()=>{$("#dfa").value="";$("#dfb").value="";$("#dfok").checked=false;renderDist()};
 
 /* ---------- kayıtlı seferler ---------- */
 function fillHist(){
@@ -643,10 +653,12 @@ $("#save").onclick=()=>{const n=($("#rname").value||"").trim();if(!n){alert("Sef
 $("#load").onclick=()=>{const n=$("#saved").value;if(!n||!S.saved[n])return;S.route=JSON.parse(JSON.stringify(S.saved[n]));syncInputs();persist();renderRoute();renderOut();note(`"${n}" açıldı.`)};
 window._histload=()=>{const h=S.history[+$("#hist").value];if(!h)return;S.route=JSON.parse(JSON.stringify(h.route));syncInputs();persist();renderRoute();renderOut();note("Geçmişten açıldı.")};
 $("#del").onclick=()=>{const n=$("#saved").value;if(!n||!confirm(`"${n}" silinsin mi?`))return;delete S.saved[n];persist();fillSaved();note(`"${n}" silindi.`)};
-$("#addport").onclick=()=>{const p=$("#newport").value.trim();if(!p)return;if(!S.ports.includes(p))S.ports.push(p);$("#newport").value="";persist();renderDist()};
+$("#addport").onclick=()=>{const p=$("#newport").value.trim();if(!p)return;if(!S.ports.includes(p))S.ports.push(p);window._newPort=p;$("#newport").value="";persist();renderDist();const el=[...$("#portchips").children].find(x=>x.textContent.trim().startsWith(p));if(el)el.scrollIntoView({block:"nearest"})};
+$("#newport").onkeydown=e=>{if(e.key==="Enter")$("#addport").click()};
 $("#adddist").onclick=()=>{const a=$("#da").value,b=$("#db").value,nm=+$("#dn").value;
   if(!a||!b||a===b||!(nm>=0)||$("#dn").value===""){alert("İki farklı liman ve mesafe seçin.");return}
   const f=S.dist.find(d=>d.a===a&&d.b===b)||S.dist.find(d=>d.a===b&&d.b===a);
+  if(f&&f.ok){alert(`${a} ↔ ${b} kesin (doğrulanmış) mesafe: ${f.nm} nm. Değiştirmek için önce tablodan Kesin ✓ işaretini kaldırın.`);return}
   if(f)f.nm=nm; else S.dist.push({a,b,nm});
   $("#dn").value="";persist();renderDist();renderOut()};
 

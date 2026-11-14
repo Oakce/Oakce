@@ -716,7 +716,8 @@ $("#fsnew").onclick=async()=>{try{const h=await showSaveFilePicker({suggestedNam
 $("#fsopen").onclick=async()=>{try{const [h]=await showOpenFilePicker({types:JTYPES});await fsUse(h,false)}catch(e){}};
 $("#fsconn").onclick=async()=>{const h=FS.pending;if(!h)return;try{if(await h.requestPermission({mode:"readwrite"})==="granted")await fsUse(h,false)}catch(e){fsStatus("⚠ "+e.message,true)}};
 (async()=>{
-  if(window.__ARTIFACT||!window.showSaveFilePicker){$("#fsbox").classList.add("hide");return}
+  if(window.__ARTIFACT){["#fsnew","#fsopen"].forEach(s=>$(s).classList.add("hide"));fsStatus("✓ Kayıtlar Claude hesabınıza otomatik kaydediliyor (telefon ve bilgisayarda aynı).");return}
+  if(!window.showSaveFilePicker){["#fsnew","#fsopen"].forEach(s=>$(s).classList.add("hide"));fsStatus("⚠ Bu tarayıcı dosyaya otomatik kaydı desteklemiyor. Programı Chrome veya Edge ile açın — yoksa tarayıcı geçmişi silinince kayıtlar gider.",true);return}
   const h=await idbGet("h");
   if(!h){fsStatus("⚠ KAYITLAR KORUNMUYOR: tarayıcı geçmişi silinirse her şey gider. Hemen 'Yeni kayıt dosyası oluştur'a basıp ETA klasörüne kaydedin.",true);return}
   let perm="prompt";try{perm=await h.queryPermission({mode:"readwrite"})}catch(e){}

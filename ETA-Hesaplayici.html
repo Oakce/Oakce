@@ -31,8 +31,8 @@ td input[type=number]{width:62px}
 td select{max-width:270px;width:100%}
 .warn{color:var(--bad);font-size:12px}
 .mut{color:var(--mut);font-size:12px}
-#out th{background:var(--acc2);color:var(--ink);font-size:13px}
-#out td{font-size:14px;padding:7px 8px}
+#out th,#detail th{background:var(--acc2);color:var(--ink);font-size:13px}
+#out td,#detail td{font-size:14px;padding:7px 8px}
 #out td.eta,#out td.etd{font-weight:600;white-space:nowrap}
 .hide{display:none}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -94,6 +94,7 @@ td select{max-width:270px;width:100%}
     </h2>
     <div id="msgs"></div>
     <table id="out"></table>
+    <details class="noprint" style="margin-top:12px"><summary class="mut" style="cursor:pointer">Detay (mesafe, seyir süresi, operasyon)</summary><table id="detail"></table></details>
     <p class="mut" id="copied"></p>
   </div>
 </section>
@@ -207,8 +208,8 @@ function fmt(ms){
   if(ms==null||isNaN(ms))return "-";
   const d=new Date(ms), D=`${p2(d.getUTCDate())}/${p2(d.getUTCMonth()+1)}/${d.getUTCFullYear()}`;
   const h=d.getUTCHours(), m=d.getUTCMinutes();
-  if(S.tfmt==="ap") return `${D} ${h<12?"AM":"PM"}`;
-  return `${D} ${p2(h)}:${p2(m)} LT`;
+  if(S.tfmt==="ap") return `${D} ${h<12?"AM":"PM"} iagw and wp`;
+  return `${D} ${p2(h)}:${p2(m)} LT iagw and wp`;
 }
 function dur(h){ if(h==null)return "-"; const t=Math.round(h*60), d=Math.floor(t/1440), hh=Math.floor(t%1440/60), mm=t%60;
   return (d?d+"g ":"")+`${hh}s ${p2(mm)}dk`; }
@@ -282,13 +283,19 @@ function renderOut(){
   const {rows,msgs}=compute(); lastRows=rows;
   $("#outtitle").textContent=`Sonuç — ${S.route.name||"Sefer"}  (hız ${S.speed} kn)`;
   $("#msgs").innerHTML=msgs.map(m=>`<div class="warn">${esc(m)}</div>`).join("");
-  const showAP=S.tfmt==="ap";
+  const vm=/^(.*?)(\d+)(\D*)$/.exec(S.route.name||"");
+  const voy=i=>vm?(i===0?vm[1]+(+vm[2]-1)+vm[3]:S.route.name):(S.route.name||"");
+  let m=`<thead><tr><th>VOY</th><th>PORT</th><th>ETA</th><th>ETD</th></tr></thead><tbody>`;
+  rows.forEach((r,i)=>{
+    m+=`<tr><td>${esc(voy(i))}</td><td>${esc(r.port)}</td><td class="eta">${i===0?"-":fmt(r.eta)}</td><td class="etd">${fmt(r.etd)}</td></tr>`;
+  });
+  $("#out").innerHTML=m+"</tbody>";
   let h=`<thead><tr><th>#</th><th>PORT</th><th>Mesafe (nm)</th><th>Seyir süresi</th><th>ETA</th><th>Operasyon</th><th>ETD</th></tr></thead><tbody>`;
   rows.forEach((r,i)=>{
     h+=`<tr><td>${i+1}</td><td>${esc(r.port)}</td><td>${r.nm??"-"}</td><td>${dur(r.sea)}</td>
-        <td class="eta">${i===0?"-":fmt(r.eta)}</td><td>${i===0?"-":dur(r.op)}</td><td class="etd">${fmt(r.etd)}</td></tr>`;
+        <td>${i===0?"-":fmt(r.eta)}</td><td>${i===0?"-":dur(r.op)}</td><td>${fmt(r.etd)}</td></tr>`;
   });
-  $("#out").innerHTML=h+"</tbody>";
+  $("#detail").innerHTML=h+"</tbody>";
 }
 
 /* ---------- çizim: liman/mesafe ---------- */
@@ -358,8 +365,8 @@ $("#copy").onclick=()=>{
 };
 $("#csv").onclick=()=>{
   const q=v=>`"${String(v).replace(/"/g,'""')}"`;
-  const lines=[["VOY","PORT","Mesafe nm","Seyir","ETA","Operasyon","ETD"].map(q).join(";")];
-  lastRows.forEach((r,i)=>lines.push([S.route.name,r.port,r.nm??"",dur(r.sea),i?fmt(r.eta):"-",i?dur(r.op):"-",fmt(r.etd)].map(q).join(";")));
+  const lines=[["VOY","PORT","ETA","ETD"].map(q).join(";")];
+  lastRows.forEach((r,i)=>lines.push([S.route.name,r.port,i?fmt(r.eta):"-",fmt(r.etd)].map(q).join(";")));
   const blob=new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download=`ETA_${(S.route.name||"sefer").replace(/[^\w-]+/g,"_")}.csv`;a.click();

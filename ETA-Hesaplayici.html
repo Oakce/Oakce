@@ -508,7 +508,10 @@ function renderDist(){
      <span>${esc(p)}</span><button data-p="${esc(p)}" class="d" style="border:0;padding:0 6px;background:none" title="Sil">✕</button></div>`).join("");
   $("#portchips").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     const p=b.dataset.p;
-    if(!confirm(`"${p}" ve bu limanın tüm mesafeleri silinsin mi?`))return;
+    const nk=S.dist.filter(d=>(d.a===p||d.b===p)&&d.ok).length;
+    if(nk){alert(`"${p}" silinemez: bu limanın ${nk} kesin (doğrulanmış) mesafesi var. Önce o mesafelerin Kesin ✓ işaretini kaldırın.`);return}
+    const nr=S.route.stops.filter(s=>s.port===p).length;
+    if(!confirm(`"${p}" silinsin mi?\n\nBu limanın ${S.dist.filter(d=>d.a===p||d.b===p).length} mesafesi de silinecek.${nr?`\nSefer zincirinde ${nr} satırda kullanılıyor.`:""}`))return;
     S.ports.splice(S.ports.indexOf(p),1); S.dist=S.dist.filter(d=>d.a!==p&&d.b!==p);
     S.route.stops.forEach(s=>{if(s.port===p)s.port=S.ports[0]||""});
     persist();renderDist();renderRoute();renderOut();fillSaved();

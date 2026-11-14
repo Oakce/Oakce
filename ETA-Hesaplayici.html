@@ -328,12 +328,12 @@ const MS=36e5;
 function parseDT(s){ if(!s)return null; const m=/^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/.exec(s); if(!m)return null;
   return Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]); }
 const p2=n=>String(n).padStart(2,"0");
-function fmt(ms,port){
+function fmt(ms,port,exact){
   if(ms==null||isNaN(ms))return "-";
   const d=new Date(ms), D=`${p2(d.getUTCDate())}/${p2(d.getUTCMonth()+1)}/${d.getUTCFullYear()}`;
   const h=d.getUTCHours(), m=d.getUTCMinutes();
   const g=S.showGmt&&port?` (${gmtTxt(port)})`:"";
-  if(S.tfmt==="ap") return `${D} ${["EAM","AM","LAM","EPM","PM","LPM"][Math.floor(h/4)]}${g} iagw and wp`;
+  if(S.tfmt==="ap"&&!exact) return `${D} ${["EAM","AM","LAM","EPM","PM","LPM"][Math.floor(h/4)]}${g} iagw and wp`;
   return `${D} ${p2(h)}:${p2(m)} LT${g} iagw and wp`;
 }
 function dur(h){ if(h==null)return "-"; const t=Math.round(h*60), d=Math.floor(t/1440), hh=Math.floor(t%1440/60), mm=t%60;
@@ -412,7 +412,7 @@ function legHTML(route,rows){
   for(let i=1;i<rows.length;i++){
     const r=rows[i],bg=i<=dk?"#ffff00":"#ffffff";
     const td=(x,ex="")=>`<td style="${F}${B}background:${bg};color:#111827;${ex}">${x}</td>`;
-    m+=`<tr>${td(r.nm??"-","text-align:center;")}${td(r.speed??"","text-align:center;")}${td(hhmm(r.sea),"text-align:center;")}${td(esc(voyOf(route,i)),"white-space:nowrap;")}${td(esc(rows[i-1].port),"white-space:nowrap;")}${td(esc(r.port),"white-space:nowrap;")}${td(fmt(r.eta,r.port),"white-space:nowrap;")}${td(hhmm(r.op),"text-align:center;")}${td(fmt(r.etd,r.port),"white-space:nowrap;")}</tr>`;
+    m+=`<tr>${td(r.nm??"-","text-align:center;")}${td(r.speed??"","text-align:center;")}${td(hhmm(r.sea),"text-align:center;")}${td(esc(voyOf(route,i)),"white-space:nowrap;")}${td(esc(rows[i-1].port),"white-space:nowrap;")}${td(esc(r.port),"white-space:nowrap;")}${td(fmt(r.eta,r.port,true),"white-space:nowrap;")}${td(hhmm(r.op),"text-align:center;")}${td(fmt(r.etd,r.port,true),"white-space:nowrap;")}</tr>`;
   }
   return m+"</tbody></table>";
 }
@@ -429,7 +429,7 @@ function renderRoute(){
     const lk=first?null:lookup(st[i-1].port,s.port);
     const vchg="";const isV=i>0&&voyOf(S.route,i)!==voyOf(S.route,i-1);
     const dt=(k,ms)=>{const fixed=parseDT(s[k])!=null;
-      return `<span class="dt" data-dt="${k}" data-i="${i}" title="Dokunun: kesin saat girin" style="cursor:pointer;white-space:nowrap;${fixed?"font-weight:600":""}">${fixed?"📌 ":""}${ms==null?'<span class="mut">— gir</span>':esc(short(fmt(ms,s.port)))}</span>`};
+      return `<span class="dt" data-dt="${k}" data-i="${i}" title="Dokunun: kesin saat girin" style="cursor:pointer;white-space:nowrap;${fixed?"font-weight:600":""}">${fixed?"📌 ":""}${ms==null?'<span class="mut">— gir</span>':esc(short(fmt(ms,s.port,true)))}</span>`};
     h+=`<tr data-i="${i}" class="${isV?"vchg":""}" style="${i<=dk?"background:var(--done);":""}${vchg}">
       <td><input type="checkbox" data-k="sel" ${s.sel?"checked":""}></td>
       <td class="mut">${i+1}</td>

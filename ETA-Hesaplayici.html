@@ -669,7 +669,7 @@ var FS={h:null,t:null,pending:null};
 function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("eta-fs",1);r.onupgradeneeded=()=>r.result.createObjectStore("k");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 async function idbGet(k){try{const db=await idb();return await new Promise(res=>{const q=db.transaction("k").objectStore("k").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(null)})}catch(e){return null}}
 async function idbSet(k,v){try{const db=await idb();await new Promise(res=>{const tx=db.transaction("k","readwrite");tx.objectStore("k").put(v,k);tx.oncomplete=res;tx.onerror=res})}catch(e){}}
-function fsStatus(m,warn){const e=$("#fsstat");e.textContent=m;e.style.color=warn?"var(--bad)":"var(--ok)"}
+function fsStatus(m,warn){const e=$("#fsstat");e.textContent=m;e.style.color=warn?"var(--bad)":"var(--ok)";e.style.fontWeight=warn?"700":"400";const b=$("#fsbox");b.style.background=warn?"rgba(220,38,38,.10)":"";b.style.border=warn?"2px solid var(--bad)":"";b.style.borderRadius="8px";b.style.padding=warn?"10px":"";b.style.paddingTop="10px"}
 async function fsWrite(){if(!FS.h)return;
   try{const w=await FS.h.createWritable();await w.write(JSON.stringify(S,null,1));await w.close();
     const d=new Date();fsStatus(`💾 ${FS.h.name} — otomatik kaydedildi ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`)}
@@ -692,7 +692,7 @@ $("#fsconn").onclick=async()=>{const h=FS.pending;if(!h)return;try{if(await h.re
 (async()=>{
   if(window.__ARTIFACT||!window.showSaveFilePicker){$("#fsbox").classList.add("hide");return}
   const h=await idbGet("h");
-  if(!h){fsStatus("Seçilmedi — veriler şimdilik sadece bu tarayıcıda. Bir kayıt dosyası oluşturun.",true);return}
+  if(!h){fsStatus("⚠ KAYITLAR KORUNMUYOR: tarayıcı geçmişi silinirse her şey gider. Hemen 'Yeni kayıt dosyası oluştur'a basıp ETA klasörüne kaydedin.",true);return}
   let perm="prompt";try{perm=await h.queryPermission({mode:"readwrite"})}catch(e){}
   if(perm==="granted")await fsUse(h,false);
   else{FS.pending=h;const b=$("#fsconn");b.textContent=`🔓 ${h.name} dosyasına bağlan`;b.classList.remove("hide");fsStatus("Kayıtları açmak için bir kez 'bağlan'a basın.",true)}

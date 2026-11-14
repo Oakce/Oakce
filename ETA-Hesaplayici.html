@@ -60,6 +60,7 @@ td select{max-width:270px;width:100%}
       <label>Sefer adı <input id="rname" placeholder="Voy 77" style="width:160px"></label>
       <button id="save" class="p">Kaydet</button>
       <button id="del" class="d">Sil</button>
+      <span id="savenote" class="mut"></span>
       <span style="flex:1"></span>
       <label>Hız (knot) <input id="speed" type="number" step="0.1" min="0.1" style="width:80px"></label>
       <label>Saat gösterimi
@@ -206,7 +207,7 @@ function fmt(ms){
   if(ms==null||isNaN(ms))return "-";
   const d=new Date(ms), D=`${p2(d.getUTCDate())}/${p2(d.getUTCMonth()+1)}/${d.getUTCFullYear()}`;
   const h=d.getUTCHours(), m=d.getUTCMinutes();
-  if(S.tfmt==="ap") return `${D} ${h<12?"AM":"PM"} LT`;
+  if(S.tfmt==="ap") return `${D} ${h<12?"AM":"PM"}`;
   return `${D} ${p2(h)}:${p2(m)} LT`;
 }
 function dur(h){ if(h==null)return "-"; const t=Math.round(h*60), d=Math.floor(t/1440), hh=Math.floor(t%1440/60), mm=t%60;
@@ -320,6 +321,7 @@ function renderDist(){
 }
 
 /* ---------- kayıtlı seferler ---------- */
+function note(m){const e=$("#savenote");e.textContent=m;clearTimeout(note.t);note.t=setTimeout(()=>{e.textContent=""},4000)}
 function fillSaved(){
   const names=Object.keys(S.saved);
   $("#saved").innerHTML=names.length?names.map(n=>`<option>${esc(n)}</option>`).join(""):"<option value=''>(kayıtlı sefer yok)</option>";
@@ -335,9 +337,9 @@ $("#rname").oninput=e=>{S.route.name=e.target.value;persist();renderOut()};
 $("#addstop").onclick=()=>{S.route.stops.push({port:S.ports[0]||"",op:24});persist();renderRoute();renderOut()};
 $("#clear").onclick=()=>{if(!confirm("Rota temizlensin mi?"))return;S.route.stops=[{port:S.ports[0]||"",op:0,etd:""},{port:S.ports[0]||"",op:24}];persist();renderRoute();renderOut()};
 $("#save").onclick=()=>{const n=($("#rname").value||"").trim();if(!n){alert("Sefer adı yazın.");return}
-  S.route.name=n;S.saved[n]=JSON.parse(JSON.stringify(S.route));persist();fillSaved();$("#saved").value=n;renderOut()};
-$("#load").onclick=()=>{const n=$("#saved").value;if(!n||!S.saved[n])return;S.route=JSON.parse(JSON.stringify(S.saved[n]));$("#rname").value=n;persist();renderRoute();renderOut()};
-$("#del").onclick=()=>{const n=$("#saved").value;if(!n||!confirm(`"${n}" silinsin mi?`))return;delete S.saved[n];persist();fillSaved()};
+  S.route.name=n;S.saved[n]=JSON.parse(JSON.stringify(S.route));persist();fillSaved();$("#saved").value=n;renderOut();note(`"${n}" kaydedildi.`)};
+$("#load").onclick=()=>{const n=$("#saved").value;if(!n||!S.saved[n])return;S.route=JSON.parse(JSON.stringify(S.saved[n]));$("#rname").value=n;persist();renderRoute();renderOut();note(`"${n}" açıldı.`)};
+$("#del").onclick=()=>{const n=$("#saved").value;if(!n||!confirm(`"${n}" silinsin mi?`))return;delete S.saved[n];persist();fillSaved();note(`"${n}" silindi.`)};
 $("#addport").onclick=()=>{const p=$("#newport").value.trim();if(!p)return;if(!S.ports.includes(p))S.ports.push(p);$("#newport").value="";persist();renderDist()};
 $("#adddist").onclick=()=>{const a=$("#da").value,b=$("#db").value,nm=+$("#dn").value;
   if(!a||!b||a===b||!(nm>=0)||$("#dn").value===""){alert("İki farklı liman ve mesafe seçin.");return}

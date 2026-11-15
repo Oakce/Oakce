@@ -16,6 +16,8 @@ nav button.on{background:#fff;color:var(--acc)}
 main{max-width:1250px;margin:16px auto;padding:0 14px}
 main{max-width:none}
 #chain td,#chain th{padding:4px 5px}
+.leaflet-control-layers{font-size:12px;max-width:260px}
+.leaflet-control-layers label{display:block;flex-direction:row;color:#1c2430}
 button:disabled{opacity:.35;cursor:not-allowed}
 #chain tr.vchg>td{border-top:3px solid var(--acc)!important}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
@@ -1417,11 +1419,25 @@ function initMap(){
   if(MP.map){MP.map.invalidateSize();drawMap();return}
   if(!window.L){$("#map").innerHTML='<p class="warn" style="padding:20px">Harita yüklenemedi.</p>';return}
   const m=MP.map=L.map("map",{worldCopyJump:true}).setView([15,-63],6);
-  const ocean=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",{maxZoom:13,attribution:"Tiles © Esri, GEBCO, NOAA"}).addTo(m);
+  /* zemin haritaları */
+  const ocean=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",{maxZoom:13,attribution:"Tiles © Esri, GEBCO, NOAA"});
   const land=L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",{maxZoom:18,subdomains:"abcd",attribution:"© OpenStreetMap, © CARTO"});
-  const sea=L.tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenSeaMap"}).addTo(m);
-  L.control.layers({"Deniz haritası (Esri Ocean)":ocean,"Detaylı kıyı (OpenStreetMap)":land},{"Fener / şamandıra (OpenSeaMap)":sea},{collapsed:false}).addTo(m);
-  let tileErr=0;ocean.on("tileerror",()=>{if(++tileErr===4)$("#mhint").textContent="⚠ Harita görüntüsü gelmiyor — internet bağlantısını kontrol edin. Mesafe ölçümü yine çalışır."});
+  const osm=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"});
+  /* denizcilik katmanları */
+  const sea=L.tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenSeaMap"});
+  const depth=L.tileLayer.wms("https://wms.gebco.net/mapserv?",{layers:"GEBCO_LATEST",format:"image/png",transparent:true,opacity:.55,attribution:"GEBCO"});
+  const enc=L.tileLayer.wms("https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/NOAAChartDisplay/MapServer/exts/MaritimeChartService/WMSServer",{layers:"0,1,2,3,4,5,6,7",format:"image/png",transparent:true,attribution:"NOAA ENC®"});
+  const names=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}",{maxZoom:13,attribution:"Esri"});
+  const bases={"Deniz haritası (Esri Ocean)":ocean,"Detaylı kıyı (CARTO)":land,"OpenStreetMap":osm};
+  const overs={"⚓ OpenSeaMap — fener, şamandıra, liman":sea,"🌊 Derinlik (GEBCO)":depth,"🇺🇸 NOAA resmi seyir haritası (ENC — ABD suları: St Croix, P. Rico)":enc,"Deniz / koy isimleri (Esri)":names};
+  const ML=S.mapLayers=S.mapLayers||{base:"Deniz haritası (Esri Ocean)",on:["⚓ OpenSeaMap — fener, şamandıra, liman","Deniz / koy isimleri (Esri)"]};
+  (bases[ML.base]||ocean).addTo(m);
+  ML.on.forEach(n=>{if(overs[n])overs[n].addTo(m)});
+  L.control.layers(bases,overs,{collapsed:false}).addTo(m);
+  m.on("baselayerchange",e=>{ML.base=e.name;persist()});
+  m.on("overlayadd",e=>{if(!ML.on.includes(e.name))ML.on.push(e.name);persist()});
+  m.on("overlayremove",e=>{ML.on=ML.on.filter(x=>x!==e.name);persist()});
+  let tileErr=0;ocean.on("tileerror",()=>{if(++tileErr===4){$("#mhint").style.color="var(--bad)";setTimeout(()=>$("#mhint").style.color="",15000)}if(tileErr===4)$("#mhint").textContent="⚠ Harita görüntüsü gelmiyor — internet bağlantısını kontrol edin. Mesafe ölçümü yine çalışır."});
   m.on("click",e=>{
     const ll=[+e.latlng.lat.toFixed(4),+e.latlng.lng.toFixed(4)];
     if(MP.moving){const p=MP.moving;S.info[p]=S.info[p]||{};S.info[p].lat=ll[0];S.info[p].lon=ll[1];delete S.info[p].approx;MP.moving=null;persist();$("#mhint").textContent=`📍 ${p} konumu kaydedildi: ${fmtLL(ll[0],ll[1])}`;drawMap();return}
